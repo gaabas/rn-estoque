@@ -1,6 +1,6 @@
 # Estoque · Rango in Natura
 
-App de celular para a equipe da cozinha registrar a quantidade conferida de um insumo e avisar quem faz as compras quando precisa repor algo.
+App web instalável (PWA) para a equipe da cozinha usar nos próprios celulares. A equipe registra a quantidade conferida de um insumo e avisa quem faz as compras quando precisa repor algo.
 
 **Simplicidade é requisito do produto.** Registrar uma contagem ou pedir uma compra deve levar poucos segundos durante um turno. Antes de acrescentar um passo, valide qual problema da rotina ele resolve e teste a mudança no celular com a equipe.
 
