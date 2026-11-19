@@ -1,5 +1,13 @@
 # Primeira versão do estoque
 
+## Acesso e conexão
+
+A equipe usa o app nos próprios celulares. A primeira configuração pode ser acompanhada, deixando o ícone da PWA na tela inicial. O acesso por link também fica disponível. O uso diário deve funcionar sem orientação técnica.
+
+A interface e a última lista carregada ficam disponíveis no aparelho após o primeiro acesso. Ao reabrir, o app mostra a lista disponível e busca contagens e pedidos atualizados em segundo plano. Sem conexão, indica que os dados exibidos podem estar desatualizados.
+
+Ao registrar uma contagem ou pedir uma compra, o app atualiza a tela imediatamente e permite seguir para o próximo item. **Salvo** aparece quando o Supabase confirma. Se o envio falhar, o app mantém o que foi digitado e oferece **Tentar de novo**. A gravação exige conexão. Uma fila de envio automático pode ser avaliada após o piloto.
+
 ## Uso na cozinha
 
 A tela inicial abre na lista de insumos. Os mais usados ficam à mão, e a busca encontra os demais. Cada insumo mostra a última contagem com data e hora e indica se há compra pendente.
@@ -29,7 +37,7 @@ Com entradas registradas e fichas técnicas ligadas aos IDs dos insumos, será p
 
 ## Teste inicial
 
-Começar com cerca de 10 insumos frequentes e observar uma semana de uso real após a implantação operacional. Antes disso, testar o protótipo no celular com a equipe.
+Começar com cerca de 10 insumos frequentes e observar uma semana de uso real após a implantação operacional. Antes disso, testar o protótipo nos celulares pessoais com a equipe. Após a configuração inicial, cada pessoa deve conseguir reabrir o app pelo ícone e seguir o fluxo sem ajuda.
 
 1. Uma pessoa da cozinha encontra o creme de leite, registra quanto tem e pede compra sem orientação.
 2. Outra pessoa encontra o mesmo item, vê que já há um pedido e consegue acrescentar contexto.
