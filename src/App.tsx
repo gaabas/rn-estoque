@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  ArrowLeft, ArrowRight, Box, Check, ChevronRight, ClipboardList, Clock3, Egg, Leaf,
-  Milk, PackageOpen, Plus, Search, ShoppingBasket, Warehouse, WifiOff, X,
+  ArrowLeft, ArrowRight, Box, Check, ChevronRight, ClipboardList, Clock3, ChevronDown, Egg, Leaf,
+  Milk, Minus, PackageOpen, Plus, Search, ShoppingBasket, Warehouse, WifiOff, X,
 } from 'lucide-react'
 import {
   dateText, itemRecords, items, loadEntries, parseQuantity, quantityText, record, searchText, storageKey,
@@ -130,6 +130,11 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
   const pending = catalog.filter(item => itemRecords(entries, item).order)
   const visible = catalog.filter(item => searchText(item.name).includes(searchText(query)))
   const current = selected && itemRecords(entries, selected)
+  const quickCount = Boolean(connected && panel === 'actions')
+  const formPanel = quickCount ? 'count' : panel
+  const step = selected?.fractional ? 0.25 : 1
+  const typedQuantity = selected ? parseQuantity(input, selected.fractional) : null
+  const itemBlocked = selected ? connected?.blocked(selected.id) : false
 
   function navigate(next: 'stock' | 'orders') {
     setScreen(next)
@@ -140,6 +145,8 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
   function openItem(item: Item, next: Panel = 'actions') {
     setSelected(item)
     setPanel(next)
+    setInput('')
+    setNote('')
     setError('')
     setFeedback(null)
   }
@@ -189,25 +196,38 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
     setPanel(next)
   }
 
+  function stepQuantity(direction: -1 | 1) {
+    const digits = selected?.fractional ? Math.max(2, Math.min(20, input.trim().split(/[.,]/)[1]?.length ?? 0)) : 0
+    const next = Math.max(0, (typedQuantity ?? 0) + direction * step)
+    setInput(Number(next.toFixed(digits)).toLocaleString('pt-BR', { useGrouping: false, maximumFractionDigits: digits }))
+    setError('')
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selected) return
-    const quantity = parseQuantity(input, selected.fractional)
-    if (quantity === null && (panel !== 'details' || input.trim())) {
+    const quantity = typedQuantity
+    if (quantity === null && (formPanel !== 'details' || input.trim())) {
       setError(selected.fractional ? 'Digite uma quantidade válida, a partir de zero.' : 'Digite um número inteiro, a partir de zero.')
       return
     }
     const itemId = selected.id
-    if (panel === 'count' && quantity !== null &&
+    if (formPanel === 'count' && quantity !== null &&
       await commit({ itemId, type: 'count', quantity, unit: selected.unit, note: note.trim() }, 'Contagem salva neste aparelho.', 'Contagem desfeita')) {
+      setInput('')
+      setNote('')
       setPanel('actions')
     }
-    if (panel === 'correct' && target && previous !== undefined && quantity !== null &&
+    if (formPanel === 'correct' && target && previous !== undefined && quantity !== null &&
       await commit({ itemId, type: 'correct', target, previous, quantity, note: note.trim() }, 'Correção salva neste aparelho.', 'Correção desfeita')) {
+      setInput('')
+      setNote('')
       setPanel('actions')
     }
-    if (panel === 'details' && target &&
+    if (formPanel === 'details' && target &&
       await commit({ itemId, type: 'details', target, quantity, note: note.trim() }, 'Detalhes salvos neste aparelho.')) {
+      setInput('')
+      setNote('')
       setPanel('actions')
     }
   }
@@ -232,7 +252,10 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
 
   function message(item?: Item) {
     return <>
-      {item && syncStatus(item)}
+      {item && connected?.statuses[item.id] && <div
+        className={connected.statuses[item.id]?.phase === 'failed' ? 'sync-failure' : 'feedback'}>
+        {syncStatus(item)}
+      </div>}
       {error && <p className="error" role="alert">{error}</p>}
       {feedback && <div className="feedback">
         <span role="status"><Check size={17} aria-hidden />{feedback.text}</span>
@@ -339,10 +362,53 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
     {selected && current && <Dialog title={selected.name} close={closeItem}>
       <div className="sheet-summary"><ItemIcon item={selected} /><LastCount item={selected} entries={entries} /></div>
       {message(selected)}
-      {panel === 'actions' && <div className="panel-actions">
-        <button type="button" className="button primary" disabled={connected?.blocked(selected.id)} onClick={() => openForm('count')}>
-          <ClipboardList size={20} aria-hidden />Registrar quantidade<ArrowRight size={18} aria-hidden />
+      {panel !== 'actions' && <button type="button" className="back" onClick={() => {
+        if (panel !== 'history') { setInput(''); setNote('') }
+        setError('')
+        setPanel('actions')
+      }}>
+        <ArrowLeft size={17} aria-hidden />Voltar às ações
+      </button>}
+      {(formPanel === 'count' || formPanel === 'correct' || formPanel === 'details') && <form
+        className={quickCount ? 'quick-count' : undefined} onSubmit={submit}>
+        {!quickCount && <h3>{formPanel === 'details' ? 'Complementar pedido' : formPanel === 'correct' ? 'Corrigir última contagem' : 'Nova contagem'}</h3>}
+        <label htmlFor="quantity">{formPanel === 'details' ? 'Quantidade sugerida' : 'Quantidade conferida'}{formPanel === 'details' && <small> (opcional)</small>}</label>
+        <div className={quickCount ? 'quantity-stepper' : undefined}>
+          {quickCount && <button type="button" className="icon-button" aria-label="Diminuir quantidade"
+            disabled={itemBlocked || typedQuantity === null || typedQuantity === 0} onClick={() => stepQuantity(-1)}>
+            <Minus size={24} aria-hidden />
+          </button>}
+          <div className={quickCount ? 'quantity-stepper-value' : 'quantity-field'}>
+            <input id="quantity" autoComplete="off" inputMode={selected.fractional ? 'decimal' : 'numeric'}
+              value={input} disabled={quickCount && itemBlocked} placeholder={quickCount ? '0' : undefined}
+              onChange={event => setInput(event.target.value)} />
+            <span>{selected.unit}</span>
+          </div>
+          {quickCount && <button type="button" className="icon-button" aria-label="Aumentar quantidade"
+            disabled={itemBlocked || (typedQuantity ?? 0) + step > Number.MAX_SAFE_INTEGER}
+            onClick={() => stepQuantity(1)}><Plus size={24} aria-hidden />
+          </button>}
+        </div>
+        {quickCount ? <>
+          <small className="quantity-hint">Toque no valor para digitar</small>
+          <details className="count-note">
+            <summary><ChevronDown size={16} aria-hidden />Observação <small>(opcional)</small></summary>
+            <textarea aria-label="Observação" rows={2} maxLength={400} value={note}
+              disabled={itemBlocked} onChange={event => setNote(event.target.value)} />
+          </details>
+        </> : <>
+          <label htmlFor="note">{formPanel === 'count' ? 'Observação' : 'Motivo'}<small> (opcional)</small></label>
+          <textarea id="note" rows={2} maxLength={400} value={note} onChange={event => setNote(event.target.value)} />
+        </>}
+        <button type="submit" className="button primary" disabled={itemBlocked || (quickCount && typedQuantity === null)}>
+          <Check size={18} aria-hidden />
+          {formPanel === 'details' ? 'Salvar detalhes' : formPanel === 'correct' ? 'Salvar correção' : 'Salvar contagem'}
         </button>
+      </form>}
+      {panel === 'actions' && <div className="panel-actions">
+        {!quickCount && <button type="button" className="button primary" onClick={() => openForm('count')}>
+          <ClipboardList size={20} aria-hidden />Registrar quantidade<ArrowRight size={18} aria-hidden />
+        </button>}
         {current.order ? <button type="button" className="button warm" disabled={connected?.blocked(selected.id)} onClick={() => openForm('details')}>
           <ShoppingBasket size={20} aria-hidden />{connected ? 'Complementar pedido' : 'Compra pendente'}<ChevronRight size={18} aria-hidden />
         </button> : <button type="button" className="button secondary" disabled={connected?.blocked(selected.id)} onClick={() =>
@@ -354,27 +420,11 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
           {current.count && <button type="button" disabled={connected?.blocked(selected.id)} onClick={() => openForm('correct')}>Corrigir última contagem</button>}
         </div>
       </div>}
-      {panel !== 'actions' && <button type="button" className="back" onClick={() => { setError(''); setPanel('actions') }}>
-        <ArrowLeft size={17} aria-hidden />Voltar às ações
-      </button>}
       {panel === 'history' && <section aria-label="Histórico">
         <h3>Histórico</h3>
         {current.history.length ? <ol className="history">{current.history.map(entry => <HistoryEntry key={entry.id} entry={entry} item={selected} />)}</ol>
           : <p className="muted">Ainda não há registros.</p>}
       </section>}
-      {panel !== 'actions' && panel !== 'history' && <form onSubmit={submit}>
-        <h3>{panel === 'details' ? 'Complementar pedido' : panel === 'correct' ? 'Corrigir última contagem' : 'Nova contagem'}</h3>
-        <label htmlFor="quantity">{panel === 'details' ? 'Quantidade sugerida' : 'Quantidade conferida'}{panel === 'details' && <small> (opcional)</small>}</label>
-        <div className="quantity-field">
-          <input id="quantity" autoComplete="off" inputMode={selected.fractional ? 'decimal' : 'numeric'} value={input} onChange={event => setInput(event.target.value)} />
-          <span>{selected.unit}</span>
-        </div>
-        <label htmlFor="note">{panel === 'count' ? 'Observação' : 'Motivo'}<small> (opcional)</small></label>
-        <textarea id="note" rows={2} maxLength={400} value={note} onChange={event => setNote(event.target.value)} />
-        <button type="submit" className="button primary" disabled={connected?.blocked(selected.id)}><Check size={18} aria-hidden />
-          {panel === 'details' ? 'Salvar detalhes' : panel === 'correct' ? 'Salvar correção' : 'Salvar contagem'}
-        </button>
-      </form>}
     </Dialog>}
   </>
 }

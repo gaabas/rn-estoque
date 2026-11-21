@@ -27,7 +27,7 @@ Por exemplo, a cozinha muda uma contagem de 3 para 8 caixas e já vê 8 com **En
 
 A tela inicial abre na lista de insumos. Os mais usados ficam à mão, e a busca encontra os demais. Cada insumo mostra a última contagem com data e hora e indica se há compra pendente.
 
-- **Registrar quantidade.** Digitar o total conferido e salvar. A unidade vem do cadastro. Zero significa que alguém conferiu e encontrou o item zerado. Quando ainda não houver registro, mostrar **Sem contagem**.
+- **Registrar quantidade.** Ao abrir um insumo, a tela já mostra o seletor de quantidade. Use **+** e **−** para ajustar de 1 em 1 nas contagens inteiras e de 250 g em 250 g nos itens em kg. Para uma quantidade personalizada, toque no valor e digite. A unidade vem do cadastro. A observação é opcional e fica recolhida até a pessoa escolher abri-la. Zero significa que alguém conferiu e encontrou o item zerado. Quando ainda não houver registro, mostrar **Sem contagem**.
 - **Pedir compra.** Um toque abre o pedido. Motivo e quantidade sugerida podem ser acrescentados depois. Um insumo pode ter uma contagem recente e uma compra pendente ao mesmo tempo.
 - **Compra já pendente.** Mostrar o pedido aberto e permitir complementar o contexto. Cada insumo tem no máximo um pedido aberto.
 - **Confirmar e corrigir.** Mostrar quando a ação for salva e oferecer **Desfazer** para o registro acidental. Permitir corrigir um erro identificado, preservando no histórico o valor anterior, o autor e o horário da correção. O motivo é opcional.

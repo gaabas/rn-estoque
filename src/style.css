@@ -103,3 +103,17 @@ form .primary { justify-content: center; margin-top: 5px; }
   dialog { inset: 0; margin: auto; border-radius: 22px; }
   .sheet { padding: 22px; }
 }
+.quick-count { margin-bottom: 14px; }
+.quantity-stepper { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center; gap: 10px; }
+.quantity-stepper .icon-button { width: 52px; height: 52px; color: var(--green); }
+.quantity-stepper-value { position: relative; }
+.quantity-stepper-value input { min-height: 65px; padding: 8px 8px 22px; font-size: 28px; font-weight: 700; text-align: center; }
+.quantity-stepper-value span { position: absolute; inset: auto 8px 6px; color: var(--muted); font-size: 13px; text-align: center; pointer-events: none; }
+.quantity-hint { text-align: center; }
+.count-note summary { display: flex; align-items: center; gap: 6px; width: fit-content; min-height: 44px; color: var(--muted); cursor: pointer; }
+.count-note summary::-webkit-details-marker { display: none; }
+.count-note[open] svg { transform: rotate(180deg); }
+.feedback { padding: 8px 12px; }
+.feedback button { padding-inline: 10px; }
+.sync-failure { margin-block-end: 12px; }
+.quick-count button:disabled { opacity: .5; }
