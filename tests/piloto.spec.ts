@@ -58,11 +58,20 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await expect(cream).toContainText('Sem contagem')
     const header = page.getByRole('banner')
     const previousReads = reads
-    await header.getByRole('button', { name: 'Atualizar lista' }).click()
+    const refresh = header.getByRole('button', { name: 'Atualizar lista' })
+    await refresh.click()
+    const rotation = await refresh.locator('svg').evaluate(icon => {
+      const animation = icon.getAnimations()[0]
+      const frames = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes()
+      return { duration: animation?.effect?.getTiming().duration, final: frames?.at(-1)?.transform }
+    })
+    expect(rotation).toEqual({ duration: 500, final: 'rotate(360deg)' })
+    await expect(refresh).toBeEnabled()
     await expect.poll(() => reads).toBeGreaterThan(previousReads)
     await expect(page.getByText('Acessos da cozinha')).not.toBeVisible()
     await header.getByRole('button', { name: 'Configurações' }).click()
     const settings = page.getByRole('dialog', { name: 'Configurações' })
+    await expect(settings).toHaveCSS('animation-name', 'sheet-enter')
     await settings.getByText('Acessos da cozinha').click()
     await page.getByLabel('Nome da pessoa').fill('Cozinha Teste')
     await page.getByRole('button', { name: 'Gerar link de acesso' }).click()
@@ -70,6 +79,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await settings.getByRole('button', { name: 'Fechar painel' }).click()
     await cream.click()
     const dialog = page.getByRole('dialog')
+    await expect(dialog).toHaveCSS('animation-name', 'sheet-enter')
     const quantity = page.getByLabel('Quantidade conferida')
     await expect(quantity).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Observação' })).not.toBeVisible()
@@ -124,6 +134,9 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await page.reload()
     await expect(page.getByText(/Sem conexão/)).toBeVisible()
     await expect(cream).toContainText('8 caixas')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await cream.click()
+    await expect(page.getByRole('dialog')).toHaveCSS('animation-name', 'none')
   } finally {
     release()
     await other.close()

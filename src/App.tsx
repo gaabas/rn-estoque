@@ -95,6 +95,8 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
   const [settings, setSettings] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshNotice, setRefreshNotice] = useState('')
+  const refreshIcon = useRef<SVGSVGElement>(null)
+  const updateBlocked = useRef(false)
   const [loadError, setLoadError] = useState(false)
   const [localEntries, setEntries] = useState<Entry[]>(() => {
     try { return connected ? [] : loadEntries() } catch { return [] }
@@ -273,15 +275,28 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
     </>
   }
 
+  useEffect(() => {
+    updateBlocked.current = Boolean(selected || settings || connected?.sending)
+  }, [selected, settings, connected?.sending])
+
   async function refreshFromHeader() {
     if (!connected || refreshing) return
-    if (applyUpdate && !connected.sending) {
-      applyUpdate()
-      return
-    }
     setRefreshing(true)
     setRefreshNotice('')
-    const success = await connected.refresh()
+    const spin = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? undefined
+      : refreshIcon.current?.animate(
+        [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+        { duration: 500, easing: 'ease-in-out' },
+      )
+    const rotation = spin?.finished.catch(() => undefined)
+    if (applyUpdate) {
+      await rotation
+      setRefreshing(false)
+      if (!updateBlocked.current) applyUpdate()
+      return
+    }
+    const [success] = await Promise.all([connected.refresh(), rotation])
     setRefreshing(false)
     if (success) setRefreshNotice('Lista atualizada.')
   }
@@ -297,7 +312,7 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
             title={applyUpdate ? 'Nova versão disponível' : 'Atualizar lista'}
             disabled={refreshing || Boolean(applyUpdate && connected.sending)}
             onClick={() => void refreshFromHeader()}>
-            <RefreshCw size={21} aria-hidden className={refreshing ? 'refreshing-icon' : undefined} />
+            <RefreshCw ref={refreshIcon} size={21} aria-hidden />
             {applyUpdate && <i className="update-dot" aria-hidden />}
           </button>
           <button type="button" className="masthead-button" aria-label="Configurações" title="Configurações"
@@ -318,7 +333,7 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
         </button>
       </nav>
       {!connected && <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>}
-      <span className="refresh-notice" role="status">{refreshing ? 'Atualizando lista…' : refreshNotice}</span>
+      <span className="refresh-notice" role="status">{refreshing ? (applyUpdate ? 'Atualizando aplicativo…' : 'Atualizando lista…') : refreshNotice}</span>
       {connected?.error && <p role="alert" className="error">{connected.error}</p>}
       {connected?.loading && <p role="status">Carregando estoque…</p>}
       {!connected && applyUpdate && !selected && <div className="update">
