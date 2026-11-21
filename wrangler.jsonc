@@ -1,5 +1,7 @@
 {
   "name": "rn-estoque",
   "compatibility_date": "2026-11-19",
-  "assets": { "directory": "./dist" }
+  "build": { "command": "npm run build" },
+  "assets": { "directory": "./dist" },
+  "previews": {}
 }
