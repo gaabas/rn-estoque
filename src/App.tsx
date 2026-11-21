@@ -97,6 +97,8 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
   const [refreshNotice, setRefreshNotice] = useState('')
   const refreshIcon = useRef<SVGSVGElement>(null)
   const updateBlocked = useRef(false)
+  const stockRows = useRef(new Map<string, HTMLButtonElement>())
+  const previousStatuses = useRef<ConnectedStock['statuses'] | undefined>(undefined)
   const [loadError, setLoadError] = useState(false)
   const [localEntries, setEntries] = useState<Entry[]>(() => {
     try { return connected ? [] : loadEntries() } catch { return [] }
@@ -279,6 +281,23 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
     updateBlocked.current = Boolean(selected || settings || connected?.sending)
   }, [selected, settings, connected?.sending])
 
+  const statuses = connected?.statuses
+  useEffect(() => {
+    const previous = previousStatuses.current
+    previousStatuses.current = statuses
+    if (!statuses || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    for (const [itemId, status] of Object.entries(statuses)) {
+      const before = previous?.[itemId]
+      if (status.phase === 'saved' && (before?.phase !== 'saved' || before.command.id !== status.command.id)) {
+        stockRows.current.get(itemId)?.animate(
+          [{ backgroundColor: '#e6f0df' }, { backgroundColor: 'transparent' }],
+          { duration: 900, easing: 'ease-in' },
+        )
+      }
+    }
+  }, [statuses])
+
   async function refreshFromHeader() {
     if (!connected || refreshing) return
     setRefreshing(true)
@@ -354,7 +373,10 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
         </div>
         {visible.length ? <ul className="stock-list">
           {visible.map(item => <li key={item.id}>
-            <button type="button" className="stock-row" onClick={() => openItem(item)}>
+            <button type="button" className="stock-row" onClick={() => openItem(item)} ref={row => {
+              if (row) stockRows.current.set(item.id, row)
+              else stockRows.current.delete(item.id)
+            }}>
               <ItemIcon item={item} />
               <span className="item-description">
                 <strong>{item.name}</strong>

@@ -109,6 +109,12 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await page.getByRole('button', { name: /Tentar de novo.*Creme de leite/ }).click()
     await expect(cream).toContainText('8 caixas')
     await expect(cream).toContainText('Salvo')
+    expect(await cream.evaluate(row => {
+      const effect = row.getAnimations()[0]?.effect as KeyframeEffect | undefined
+      return effect?.getKeyframes().map(frame => frame.backgroundColor)
+    })).toEqual(['rgb(230, 240, 223)', 'transparent'])
+    await expect(cream).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(cream).toContainText('Salvo')
     expect(entries.filter(entry => entry.type === 'count')).toHaveLength(1)
 
     await cream.click()
