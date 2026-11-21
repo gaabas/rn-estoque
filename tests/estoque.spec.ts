@@ -90,3 +90,41 @@ test('avisa quando o armazenamento local está ilegível', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('Não foi possível ler os registros')
   await expect(page.getByRole('searchbox')).toBeVisible()
 })
+
+test('reabre pela rede se o HTML saiu do cache e preserva o pedido local', async ({ page }) => {
+  await page.goto('/')
+  const item = page.getByRole('button', { name: /Creme de leite/ })
+  await item.click()
+  await page.getByRole('button', { name: 'Pedir compra' }).click()
+  await expect(page.getByText('Pedido aberto neste aparelho.')).toBeVisible()
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+
+  const removed = await page.evaluate(async () => {
+    const names = (await caches.keys()).filter(name => name.startsWith('rn-estoque-'))
+    const results = await Promise.all(names.map(async name => {
+      const cache = await caches.open(name)
+      return cache.delete('/index.html')
+    }))
+    return results.some(Boolean)
+  })
+  expect(removed).toBe(true)
+
+  const response = await page.reload()
+  expect(response?.status()).toBe(200)
+  await expect(item).toContainText('Compra pendente')
+})
+
+test('recupera a PWA no mesmo navegador sem apagar os registros', async ({ page }) => {
+  await page.goto('/')
+  const item = page.getByRole('button', { name: /Creme de leite/ })
+  await item.click()
+  await page.getByRole('button', { name: 'Pedir compra' }).click()
+  await expect(page.getByText('Pedido aberto neste aparelho.')).toBeVisible()
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+
+  await page.goto('/recuperar.html')
+  await page.getByRole('button', { name: 'Reabrir Estoque' }).click()
+  await expect(page).toHaveURL('/')
+  await expect(item).toContainText('Compra pendente')
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+})

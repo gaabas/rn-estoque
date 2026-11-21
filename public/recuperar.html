@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#174a3a" />
+    <title>Reabrir Estoque · Rango in Natura</title>
+    <style>
+      body { margin: 24px auto; padding: 0 16px; max-width: 32rem; background: #f5f5ee; color: #1d3027; font-family: system-ui, sans-serif; }
+      button { min-height: 44px; padding: 8px 16px; border: 0; border-radius: 10px; background: #174a3a; color: white; font: inherit; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Reabrir Estoque</h1>
+      <p>Recarregue a interface com internet. Seus registros ficam neste aparelho.</p>
+      <button type="button">Reabrir Estoque</button>
+      <p role="status"></p>
+    </main>
+    <script>
+      const button = document.querySelector('button')
+      const status = document.querySelector('[role="status"]')
+
+      button.addEventListener('click', async () => {
+        button.disabled = true
+        status.textContent = 'Reabrindo…'
+        try {
+          const registration = await navigator.serviceWorker?.getRegistration('/')
+          await registration?.unregister()
+          location.replace('/')
+        } catch {
+          status.textContent = 'Não foi possível reabrir. Confira a conexão e tente de novo.'
+          button.disabled = false
+        }
+      })
+    </script>
+  </body>
+</html>

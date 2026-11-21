@@ -17,14 +17,21 @@ self.addEventListener('activate', event => {
   })())
 })
 
+async function cachedOrNetwork(pathname, request) {
+  const cached = await caches.open(cacheName)
+    .then(cache => cache.match(pathname))
+    .catch(() => undefined)
+  return cached ?? fetch(request)
+}
+
 self.addEventListener('fetch', event => {
   const { request } = event
   const url = new URL(request.url)
   if (request.method !== 'GET' || url.origin !== self.location.origin) return
 
   if (request.mode === 'navigate' && (url.pathname === '/' || url.pathname === '/index.html')) {
-    event.respondWith(caches.open(cacheName).then(cache => cache.match('/index.html')))
+    event.respondWith(cachedOrNetwork('/index.html', request))
   } else if (files.includes(url.pathname)) {
-    event.respondWith(caches.open(cacheName).then(cache => cache.match(url.pathname)).then(hit => hit ?? fetch(request)))
+    event.respondWith(cachedOrNetwork(url.pathname, request))
   }
 })
