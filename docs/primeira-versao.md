@@ -18,7 +18,7 @@ O acesso diário precisa ser simples para uma equipe com pouca familiaridade com
 
 A proposta para o primeiro acesso é Gabriel entregar a cada pessoa um link individual, de uso único, com o nome já preenchido. A pessoa escolhe um PIN de seis dígitos no próprio celular, com ajuda de Gabriel se precisar. Depois, se for necessário entrar novamente, usa nome e PIN. Se esquecer o PIN, Gabriel pode liberar um novo link. O PIN é digitado no app. O WhatsApp pode ser usado para compartilhar o link.
 
-Após cinco PINs incorretos, o app pede que a pessoa aguarde dez minutos. O link vale 48 horas. Ao definir um novo PIN pelo link, as sessões anteriores daquela pessoa são encerradas. O app limita tentativas de PIN e mantém cada registro associado à pessoa que fez a ação. As permissões da cozinha continuam restritas a contagens e pedidos de reposição. Gabriel usa seu acesso atual para concluir compras.
+Após cinco PINs incorretos, o app pede que a pessoa aguarde dez minutos. O link vale 48 horas. Ao definir um novo PIN pelo link, as sessões anteriores daquela pessoa são encerradas. O app limita tentativas de PIN e mantém cada registro associado à pessoa que fez a ação. As permissões da cozinha continuam restritas a contagens e pedidos de reposição. Gabriel usa seu acesso atual para concluir compras. Na barra superior, a engrenagem abre **Configurações**, onde ficam **Acessos da cozinha** e **Sair**. A seta circular atualiza a lista e sinaliza com um ponto quando há uma nova versão do app.
 
 ### Atualização otimista
 

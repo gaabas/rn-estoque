@@ -12,6 +12,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
   let release = () => {}
   const firstResponse = new Promise<void>(resolve => { release = resolve })
   let lostConfirmation = false
+  let reads = 0
   for (const client of [page, desktop]) {
     await client.route('https://hblveamovkpbxcmscpkf.supabase.co/**', async route => {
       const path = new URL(route.request().url()).pathname
@@ -31,6 +32,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
         return
       }
       const { change, request_id: id } = route.request().postDataJSON()
+      if (!change) reads++
       if (change && !entries.some(entry => entry.id === id)) {
         entries.push({ ...change, id, at: '2026-11-21T12:00:00Z', author: 'Gabriel' })
       }
@@ -54,11 +56,18 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await login(page)
     const cream = page.locator('.stock-row').filter({ hasText: 'Creme de leite' })
     await expect(cream).toContainText('Sem contagem')
-    await page.locator('summary').getByText('Acessos da cozinha').click()
+    const header = page.getByRole('banner')
+    const previousReads = reads
+    await header.getByRole('button', { name: 'Atualizar lista' }).click()
+    await expect.poll(() => reads).toBeGreaterThan(previousReads)
+    await expect(page.getByText('Acessos da cozinha')).not.toBeVisible()
+    await header.getByRole('button', { name: 'Configurações' }).click()
+    const settings = page.getByRole('dialog', { name: 'Configurações' })
+    await settings.getByText('Acessos da cozinha').click()
     await page.getByLabel('Nome da pessoa').fill('Cozinha Teste')
     await page.getByRole('button', { name: 'Gerar link de acesso' }).click()
     await expect(page.getByLabel('Link de acesso')).toHaveValue(url + '#convite=' + 'a'.repeat(64))
-    await page.locator('summary').getByText('Acessos da cozinha').click()
+    await settings.getByRole('button', { name: 'Fechar painel' }).click()
     await cream.click()
     const dialog = page.getByRole('dialog')
     const quantity = page.getByLabel('Quantidade conferida')

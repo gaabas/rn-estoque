@@ -119,3 +119,14 @@ form .primary { justify-content: center; margin-top: 5px; }
 .feedback button { padding-inline: 10px; }
 .sync-failure { margin-block-end: 12px; }
 .quick-count button:disabled { opacity: .5; }
+.brand-text { min-width: 0; }
+.masthead-actions { display: flex; gap: 4px; flex: none; margin-inline-start: auto; }
+.masthead-button { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #ffffff30; border-radius: 10px; background: #ffffff12; color: #fffefa; }
+.masthead-button:focus-visible { outline-color: #e3edc9; }
+.masthead-button:disabled { opacity: .65; }
+.update-dot { position: absolute; width: 8px; height: 8px; inset: 6px 6px auto auto; border-radius: 50%; background: #f4ce80; }
+.refreshing-icon { animation: refresh-spin 800ms linear infinite; }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .refreshing-icon { animation: none; } }
+.refresh-notice { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.settings-sheet { display: grid; gap: 12px; margin-top: 12px; }

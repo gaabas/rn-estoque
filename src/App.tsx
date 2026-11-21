@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowLeft, ArrowRight, Box, Check, ChevronRight, ClipboardList, Clock3, ChevronDown, Egg, Leaf,
-  Milk, Minus, PackageOpen, Plus, Search, ShoppingBasket, Warehouse, WifiOff, X,
+  Milk, Minus, PackageOpen, Plus, RefreshCw, Search, Settings, ShoppingBasket, Warehouse, WifiOff, X,
 } from 'lucide-react'
 import {
   dateText, itemRecords, items, loadEntries, parseQuantity, quantityText, record, searchText, storageKey,
@@ -30,17 +30,20 @@ function LastCount({ item, entries }: { item: Item; entries: Entry[] }) {
   </span>
 }
 
-function Dialog({ children, close, title }: { children: ReactNode; close: () => void; title: string }) {
+function Dialog({ children, close, title, open = true }: { children: ReactNode; close: () => void; title: string; open?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
-    ref.current?.showModal()
-  }, [])
-  return <dialog ref={ref} aria-labelledby="panel-title"
+    const dialog = ref.current
+    if (open && !dialog?.open) dialog?.showModal()
+    if (!open && dialog?.open) dialog.close()
+  }, [open])
+  return <dialog ref={ref} aria-labelledby={titleId}
     onCancel={event => { event.preventDefault(); close() }}
     onClick={event => { if (event.target === event.currentTarget) close() }}>
     <div className="sheet">
       <header className="sheet-header">
-        <h2 id="panel-title">{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button type="button" className="icon-button" onClick={close} aria-label="Fechar painel"><X size={22} /></button>
       </header>
       {children}
@@ -89,6 +92,9 @@ function HistoryEntry({ entry, item }: { entry: Entry; item: Item }) {
 export default function App({ connected, accessTools }: { connected?: ConnectedStock, accessTools?: ReactNode }) {
   const writing = useRef(false)
   const applyUpdate = usePwaUpdate()
+  const [settings, setSettings] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshNotice, setRefreshNotice] = useState('')
   const [loadError, setLoadError] = useState(false)
   const [localEntries, setEntries] = useState<Entry[]>(() => {
     try { return connected ? [] : loadEntries() } catch { return [] }
@@ -267,11 +273,38 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
     </>
   }
 
+  async function refreshFromHeader() {
+    if (!connected || refreshing) return
+    if (applyUpdate && !connected.sending) {
+      applyUpdate()
+      return
+    }
+    setRefreshing(true)
+    setRefreshNotice('')
+    const success = await connected.refresh()
+    setRefreshing(false)
+    if (success) setRefreshNotice('Lista atualizada.')
+  }
+
   return <>
     <header className="masthead">
       <div className="shell brand">
         <span className="brand-icon"><Warehouse size={24} aria-hidden /></span>
-        <div><strong>Rango in Natura</strong><span>Estoque da cozinha</span></div>
+        <div className="brand-text"><strong>Rango in Natura</strong><span>Estoque da cozinha</span></div>
+        {connected && <div className="masthead-actions">
+          <button type="button" className="masthead-button"
+            aria-label={applyUpdate ? 'Atualizar aplicativo' : 'Atualizar lista'}
+            title={applyUpdate ? 'Nova versão disponível' : 'Atualizar lista'}
+            disabled={refreshing || Boolean(applyUpdate && connected.sending)}
+            onClick={() => void refreshFromHeader()}>
+            <RefreshCw size={21} aria-hidden className={refreshing ? 'refreshing-icon' : undefined} />
+            {applyUpdate && <i className="update-dot" aria-hidden />}
+          </button>
+          <button type="button" className="masthead-button" aria-label="Configurações" title="Configurações"
+            aria-haspopup="dialog" onClick={() => setSettings(true)}>
+            <Settings size={22} aria-hidden />
+          </button>
+        </div>}
       </div>
     </header>
     <main className="shell">
@@ -284,18 +317,13 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
           {pending.length > 0 && <span className="nav-count">{pending.length}</span>}
         </button>
       </nav>
-      {connected
-        ? <div className="connected-header"><span>Prévia conectada · {connected.name}</span>
-            <button type="button" onClick={connected.refresh}>Atualizar lista</button>
-            <button type="button" disabled={connected.sending} onClick={connected.signOut}>Sair</button>
-          </div>
-        : <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>}
-      {connected?.canClose && accessTools}
+      {!connected && <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>}
+      <span className="refresh-notice" role="status">{refreshing ? 'Atualizando lista…' : refreshNotice}</span>
       {connected?.error && <p role="alert" className="error">{connected.error}</p>}
       {connected?.loading && <p role="status">Carregando estoque…</p>}
-      {applyUpdate && !selected && <div className="update">
+      {!connected && applyUpdate && !selected && <div className="update">
         <span role="status">Atualização disponível</span>
-        <button type="button" onClick={() => { if (!writing.current && !connected?.sending) applyUpdate() }}>Atualizar agora</button>
+        <button type="button" onClick={() => { if (!writing.current) applyUpdate() }}>Atualizar agora</button>
       </div>}
       {offline && <p className="offline" role="status"><WifiOff size={16} aria-hidden /> {connected ? 'Sem conexão · A lista pode estar desatualizada.' : 'Sem conexão · Seus registros continuam neste aparelho.'}</p>}
       {loadError && <p className="error" role="alert">Não foi possível ler os registros deste aparelho.</p>}
@@ -359,6 +387,14 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
         })}</ul> : <div className="empty"><PackageOpen size={29} aria-hidden /><p>Nenhuma compra pendente.</p></div>}
       </section>}
     </main>
+
+    {connected && <Dialog title="Configurações" open={settings} close={() => setSettings(false)}>
+      <div className="settings-sheet">
+        {connected.name && <p className="muted">{connected.name}</p>}
+        {connected.canClose && accessTools}
+        <button type="button" className="button secondary" disabled={connected.sending} onClick={connected.signOut}>Sair</button>
+      </div>
+    </Dialog>}
 
     {selected && current && <Dialog title={selected.name} close={closeItem}>
       <div className="sheet-summary"><ItemIcon item={selected} /><LastCount item={selected} entries={entries} /></div>

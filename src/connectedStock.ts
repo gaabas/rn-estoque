@@ -32,7 +32,7 @@ export type ConnectedStock = Omit<Snapshot, 'revision'> & {
   blocked: (itemId: string) => boolean
   send: (change: Change) => boolean
   retry: (itemId: string) => void
-  refresh: () => void
+  refresh: () => Promise<boolean>
   signOut: () => void
 }
 
@@ -85,7 +85,7 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
   const refresh = useCallback(async () => {
     const read = ++reads.current
     const result = await request(null, null)
-    if (!alive.current || read !== reads.current) return
+    if (!alive.current || read !== reads.current) return false
     setLoading(false)
     if (result.error) {
       if (kitchenToken && result.error.code === '28000') {
@@ -93,11 +93,12 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
         signOutAccount()
       } else if (result.error.code === '42501') rejectAccess()
       else setError('Não foi possível atualizar. A lista pode estar desatualizada.')
-      return
+      return false
     }
     denied.current = false
     accept(result.data as Snapshot)
     setError('')
+    return true
   }, [accept, kitchenToken, rejectAccess, request, signOutAccount])
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
     ...snapshot,
     entries: [...snapshot.entries, ...optimistic.map(state => state.command).filter(entry => !confirmed.has(entry.id))],
     statuses, loading, error, blocked, sending: optimistic.length > 0,
-    refresh: () => void refresh(),
+    refresh,
     send(change) {
       if (blocked(change.itemId) || denied.current) return false
       void submit({ ...change, id: crypto.randomUUID(), at: new Date().toISOString(), author: snapshot.name })
