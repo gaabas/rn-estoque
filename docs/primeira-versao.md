@@ -1,12 +1,27 @@
 # Primeira versão do estoque
 
+## Quem usa o app
+
+A equipe da cozinha confere as quantidades físicas, pede reposição e complementa pedidos já abertos. Gabriel é o único responsável pelas compras nesta primeira versão. Ele consulta as pendências, decide o que e quanto comprar e encerra cada pedido quando a compra estiver concluída. A cozinha registra a necessidade de reposição e Gabriel confirma a compra.
+
+No ensaio técnico, a mesma conta foi usada em sessões separadas para validar o compartilhamento pelo Supabase. Na semana de uso real, as ações devem ficar vinculadas à pessoa que as fez. O acesso para concluir compras é reservado a Gabriel.
+
 ## Acesso e conexão
 
 A equipe usa o app nos próprios celulares. A primeira configuração pode ser acompanhada, deixando o ícone da PWA na tela inicial. O acesso por link também fica disponível. O uso diário deve funcionar sem orientação técnica.
 
 A interface e a última lista carregada ficam disponíveis no aparelho após o primeiro acesso. Ao reabrir, o app mostra a lista disponível e busca contagens e pedidos atualizados em segundo plano. Sem conexão, indica que os dados exibidos podem estar desatualizados.
 
-Ao registrar uma contagem ou pedir uma compra, o app atualiza a tela imediatamente e permite seguir para o próximo item. **Salvo** aparece quando o Supabase confirma. Se o envio falhar, o app mantém o que foi digitado e oferece **Tentar de novo**. A gravação exige conexão. Uma fila de envio automático pode ser avaliada após o piloto.
+### Atualização otimista
+
+Toda ação que altera contagens ou pedidos deve aparecer imediatamente na tela, incluindo registrar, corrigir ou desfazer uma contagem, abrir ou complementar um pedido e marcar como comprado. O envio roda em segundo plano e a pessoa pode seguir para outro insumo.
+
+- **Enviando…** O item já reflete a ação e sinaliza que ela aguarda confirmação.
+- **Salvo.** Aparece somente quando o Supabase confirma. O estado confirmado passa a ser a referência para as próximas ações.
+- **Falha no envio.** O item volta ao último estado confirmado. O app preserva o que foi digitado e mostra **Tentar de novo** junto ao item, inclusive se a pessoa já tiver seguido para outro. A nova tentativa usa o mesmo identificador para que uma confirmação perdida na rede não gere um registro duplicado.
+- **Pedido já aberto por outra pessoa.** A interface mostra o pedido existente e oferece **Complementar pedido**. Cada insumo pode ter no máximo um pedido aberto.
+
+Por exemplo, a cozinha muda uma contagem de 3 para 8 caixas e já vê 8 com **Enviando…**. Se o envio falhar, volta a ver 3 e pode reenviar o 8 sem digitar de novo. A gravação exige conexão. Uma fila de envio automático pode ser avaliada após o piloto.
 
 ## Uso na cozinha
 
@@ -21,9 +36,9 @@ A conferência pode acontecer antes de montar a lista de compras. A equipe regis
 
 ## Uso em compras
 
-Em **Compras**, quem compra vê os pedidos pendentes, a última contagem com data e hora e, quando preenchidos, o motivo e a quantidade sugerida. Exemplo: a cozinha contou 8 caixas de creme de leite e pediu mais porque há muito estrogonofe previsto para amanhã.
+Em **Compras**, Gabriel vê os pedidos pendentes, a última contagem com data e hora e, quando preenchidos, o motivo e a quantidade sugerida. Exemplo: a cozinha contou 8 caixas de creme de leite e pediu mais porque há muito estrogonofe previsto para amanhã.
 
-Quem compra decide a quantidade e toca em **Marcar como comprado** quando concluir a compra. O pedido sai das pendências e fica no histórico com os horários de abertura e conclusão. A compra preserva a última contagem e sua data original. O que ficar para outra ida ao mercado continua pendente.
+Gabriel decide a quantidade e toca em **Marcar como comprado** quando concluir a compra. O pedido sai das pendências e fica no histórico com os horários de abertura e conclusão. A compra preserva a última contagem e sua data original. Se a compra for parcial ou ficar para outra ida, Gabriel pode manter o pedido aberto. Uma contagem antiga continua visível com a data e a hora da conferência para ele decidir se precisa pedir uma nova.
 
 ## Dados e evolução
 
@@ -35,12 +50,34 @@ O protótipo usa dados de exemplo. A versão operacional deve usar o mesmo proje
 
 Com entradas registradas e fichas técnicas ligadas aos IDs dos insumos, será possível estimar a necessidade da produção em aberto e comparar o saldo esperado com a próxima contagem física. Recebimento, importação de cupons e previsão fazem parte dessa evolução.
 
+## Catálogo da primeira semana
+
+Os 12 insumos começam como **Sem contagem**. A equipe preenche a primeira quantidade à medida que confere cada item. As unidades abaixo são propostas para confirmar com a cozinha antes da semana de uso real.
+
+| Insumo | Unidade proposta |
+| --- | --- |
+| Arroz branco | kg |
+| Arroz integral | kg |
+| Seleta | kg |
+| Carne de panela | kg |
+| Carne de tiras | kg |
+| Carne moída | kg |
+| Frango | kg |
+| Ovo | unidades |
+| Camarão | kg |
+| Cuscuz | kg |
+| Creme de leite | caixas |
+| Manteiga | kg |
+
+Combinar o que entra na contagem e onde conferir cada item. Por exemplo, definir se as carnes são pesadas cruas ou já preparadas e se a manteiga será contada por peso ou por embalagem.
+
 ## Teste inicial
 
-Começar com cerca de 10 insumos frequentes e observar uma semana de uso real após a implantação operacional. Antes disso, testar o protótipo nos celulares pessoais com a equipe. Após a configuração inicial, cada pessoa deve conseguir reabrir o app pelo ícone e seguir o fluxo sem ajuda.
+Começar com os 12 insumos do catálogo e observar uma semana de uso real. Antes disso, conferir a versão conectada nos celulares da cozinha e no aparelho de Gabriel. Após a configuração inicial, cada pessoa deve conseguir reabrir o app pelo ícone e seguir o fluxo sem ajuda.
 
 1. Uma pessoa da cozinha encontra o creme de leite, registra quanto tem e pede compra sem orientação.
 2. Outra pessoa encontra o mesmo item, vê que já há um pedido e consegue acrescentar contexto.
-3. Quem compra decide o que levar pela lista e encerra a compra. A pendência sai da lista e o histórico continua consultável.
+3. Gabriel decide o que levar pela lista e encerra a compra. A pendência sai da lista e o histórico continua consultável.
 4. Uma contagem de zero e um item sem contagem aparecem como situações distintas. Uma correção mantém o registro anterior acessível.
-5. Ao fim do piloto, revisar o que faltou, o que precisou de confirmação fora do app e onde houve atrito para registrar.
+5. Com conexão instável, a tela responde de imediato, preserva o que foi digitado em caso de falha e confirma o reenvio sem criar duplicidade.
+6. Ao fim da semana, revisar quais pedidos Gabriel resolveu com a informação do app, quais precisaram de confirmação por fora e onde a cozinha teve dificuldade para registrar.
