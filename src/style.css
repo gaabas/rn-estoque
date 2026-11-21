@@ -42,8 +42,10 @@ main { padding-block: 16px 28px; }
 .search input { width: 100%; min-height: 48px; background: transparent; border: 0; color: var(--dark); outline: none; }
 .stock-list { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
 .stock-list li + li { border-top: 1px solid var(--line); }
-.stock-row { display: flex; align-items: center; width: 100%; text-align: left; padding: 11px 12px; gap: 12px; min-height: 69px; background: transparent; border: 0; }
-.stock-row:hover { background: #f1f4e9; }
+.stock-row { display: flex; align-items: center; width: 100%; text-align: left; padding: 11px 12px; gap: 12px; min-height: 69px; background: transparent; border: 0; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) and (pointer: fine) {
+  .stock-row:hover { background: #f1f4e9; }
+}
 .stock-row:focus-visible { outline-offset: -3px; }
 .item-icon { background: #e9eee0; color: #456644; }
 .item-icon[data-group="Laticínios"] { background: #e8eee9; color: #365c51; }
