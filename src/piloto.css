@@ -8,3 +8,6 @@
 .pilot time { display: block; color: var(--muted); font-size: .875rem; }
 .pilot li + li { margin-top: 8px; }
 .pilot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.connected-header, .connected-result { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.connected-header { font-size: .875rem; color: var(--muted); }
+.connected-header button { min-height: 44px; background: none; border: 0; color: var(--green); font: inherit; text-decoration: underline; }

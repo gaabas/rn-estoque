@@ -10,6 +10,8 @@ Estas instruções valem para todo o repositório. Leia o [README](README.md) e 
 
 ## Regras do produto
 
+- A cozinha confere quantidades, pede reposição e complementa pedidos. Gabriel é o único responsável pelas compras na primeira versão e é quem pode marcar um pedido como comprado.
+
 - Uma contagem é uma observação datada. Mostre quando foi feita e diferencie **0** de **Sem contagem**. Ao corrigir, preserve o registro anterior, quem corrigiu e quando.
 - A cozinha pode informar uma quantidade e pedir compra para o mesmo insumo. Mantenha no máximo um pedido aberto por insumo e permita complementar o pedido existente.
 - **Marcar como comprado** encerra o pedido e registra a conclusão no histórico. A contagem continua vinculada à última conferência física.
@@ -17,7 +19,7 @@ Estas instruções valem para todo o repositório. Leia o [README](README.md) e 
 ## Resposta da interface
 
 - Exiba a última lista carregada assim que possível e atualize em segundo plano. Sem conexão, sinalize que os dados podem estar desatualizados.
-- Na versão conectada ao Supabase, permita seguir para outro item enquanto o registro é enviado. Exiba **Salvo** só após a confirmação. Em caso de falha, preserve o que foi digitado e permita tentar novamente sem duplicar o registro. A gravação da primeira versão exige conexão.
+- Na versão conectada ao Supabase, aplique atualizações otimistas a contagens e pedidos. Reflita a ação imediatamente com **Enviando…**, permita seguir para outro item e mostre **Salvo** só após a confirmação. Em caso de falha, restaure o último estado confirmado, preserve o que foi digitado e ofereça **Tentar de novo** com o mesmo identificador de envio. A gravação da primeira versão exige conexão.
 
 ## Escopo e verificação
 

@@ -11,7 +11,13 @@ export const items = [
   { id: 'leite', name: 'Leite integral', group: 'Laticínios', unit: 'litros', fractional: true },
 ] as const
 
-export type Item = (typeof items)[number]
+export type Item = {
+  id: string
+  name: string
+  group: (typeof items)[number]['group']
+  unit: string
+  fractional: boolean
+}
 type Action =
   | { type: 'count'; quantity: number; unit: Item['unit']; note: string }
   | { type: 'correct'; target: string; previous: number; quantity: number; note: string }

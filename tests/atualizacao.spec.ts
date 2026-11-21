@@ -33,7 +33,7 @@ test('troca de publicação com a PWA aberta e preserva registros offline', asyn
       } else {
         if (path.endsWith('.js')) response.setHeader('Content-Type', 'application/javascript')
         if (path.endsWith('.css')) response.setHeader('Content-Type', 'text/css')
-        response.end(await readFile('dist' + path))
+        response.end(await readFile(path === '/piloto' ? 'dist/piloto.html' : 'dist' + path))
       }
     } catch {
       response.writeHead(404).end()

@@ -8,6 +8,7 @@ import {
   type Change, type Entry, type Item,
 } from './records'
 
+import type { ConnectedStock } from './connectedStock'
 import { usePwaUpdate } from './usePwaUpdate'
 
 const groupIcons = { Laticínios: Milk, Despensa: Box, Proteínas: Egg, Hortifruti: Leaf }
@@ -85,12 +86,12 @@ function HistoryEntry({ entry, item }: { entry: Entry; item: Item }) {
   </li>
 }
 
-export default function App() {
+export default function App({ connected }: { connected?: ConnectedStock }) {
   const writing = useRef(false)
   const applyUpdate = usePwaUpdate()
   const [loadError, setLoadError] = useState(false)
-  const [entries, setEntries] = useState<Entry[]>(() => {
-    try { return loadEntries() } catch { return [] }
+  const [localEntries, setEntries] = useState<Entry[]>(() => {
+    try { return connected ? [] : loadEntries() } catch { return [] }
   })
   const [screen, setScreen] = useState<'stock' | 'orders'>('stock')
   const [query, setQuery] = useState('')
@@ -107,6 +108,7 @@ export default function App() {
   useEffect(() => {
     const connectionChanged = () => setOffline(!navigator.onLine)
     const refresh = () => {
+      if (connected) return
       try { setEntries(loadEntries()); setLoadError(false) } catch { setLoadError(true) }
     }
     const sync = (event: StorageEvent) => {
@@ -123,8 +125,10 @@ export default function App() {
     }
   }, [])
 
-  const pending = items.filter(item => itemRecords(entries, item).order)
-  const visible = items.filter(item => searchText(item.name).includes(searchText(query)))
+  const catalog = connected?.items ?? items
+  const entries = connected?.entries ?? localEntries
+  const pending = catalog.filter(item => itemRecords(entries, item).order)
+  const visible = catalog.filter(item => searchText(item.name).includes(searchText(query)))
   const current = selected && itemRecords(entries, selected)
 
   function navigate(next: 'stock' | 'orders') {
@@ -147,6 +151,11 @@ export default function App() {
   }
 
   async function commit(change: Change, result: Feedback['text'], undoLabel?: string) {
+    if (connected) {
+      const accepted = connected.send(change)
+      if (accepted) setError('')
+      return accepted
+    }
     if (writing.current) return false
     writing.current = true
     try {
@@ -203,8 +212,27 @@ export default function App() {
     }
   }
 
+  function syncStatus(item: Item, inline = false) {
+    const state = connected?.statuses[item.id]
+    if (!state) return null
+    return <>
+      {state.phase === 'sending' && <span role="status">Enviando…</span>}
+      {state.phase === 'saved' && <span role="status">Salvo</span>}
+      {state.phase === 'failed' && <span className="error" role="alert">{state.message}</span>}
+      {!inline && state.phase === 'failed' && state.retry &&
+        <button type="button" className="button secondary" aria-label={`Tentar de novo: ${item.name}`}
+          onClick={() => connected?.retry(item.id)}>Tentar de novo</button>}
+      {!inline && state.phase === 'saved' && state.undo &&
+        <button type="button" className="button secondary" onClick={() => {
+          const undo = state.undo!
+          connected?.send({ itemId: item.id, type: 'undo', target: undo.id, label: undo.label })
+        }}>Desfazer</button>}
+    </>
+  }
+
   function message(item?: Item) {
     return <>
+      {item && syncStatus(item)}
       {error && <p className="error" role="alert">{error}</p>}
       {feedback && <div className="feedback">
         <span role="status"><Check size={17} aria-hidden />{feedback.text}</span>
@@ -233,12 +261,19 @@ export default function App() {
           {pending.length > 0 && <span className="nav-count">{pending.length}</span>}
         </button>
       </nav>
-      <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>
+      {connected
+        ? <div className="connected-header"><span>Prévia conectada · {connected.name}</span>
+            <button type="button" onClick={connected.refresh}>Atualizar lista</button>
+            <button type="button" disabled={connected.sending} onClick={connected.signOut}>Sair</button>
+          </div>
+        : <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>}
+      {connected?.error && <p role="alert" className="error">{connected.error}</p>}
+      {connected?.loading && <p role="status">Carregando estoque…</p>}
       {applyUpdate && !selected && <div className="update">
         <span role="status">Atualização disponível</span>
-        <button type="button" onClick={() => { if (!writing.current) applyUpdate() }}>Atualizar agora</button>
+        <button type="button" onClick={() => { if (!writing.current && !connected?.sending) applyUpdate() }}>Atualizar agora</button>
       </div>}
-      {offline && <p className="offline" role="status"><WifiOff size={16} aria-hidden /> Sem conexão · Seus registros continuam neste aparelho.</p>}
+      {offline && <p className="offline" role="status"><WifiOff size={16} aria-hidden /> {connected ? 'Sem conexão · A lista pode estar desatualizada.' : 'Sem conexão · Seus registros continuam neste aparelho.'}</p>}
       {loadError && <p className="error" role="alert">Não foi possível ler os registros deste aparelho.</p>}
 
       {screen === 'stock' ? <section aria-labelledby="stock-title">
@@ -257,10 +292,14 @@ export default function App() {
               <span className="item-description">
                 <strong>{item.name}</strong>
                 <LastCount item={item} entries={entries} />
+                {syncStatus(item, true)}
                 {itemRecords(entries, item).order && <span className="pending">Compra pendente</span>}
               </span>
               <ChevronRight className="chevron" size={19} aria-hidden />
             </button>
+            {connected?.statuses[item.id]?.phase === 'failed' && connected.statuses[item.id]?.retry &&
+              <button type="button" className="button secondary" aria-label={`Tentar de novo: ${item.name}`}
+                onClick={() => connected.retry(item.id)}>Tentar de novo</button>}
           </li>)}
         </ul> : <p className="empty">Nenhum insumo encontrado.</p>}
       </section> : <section aria-labelledby="orders-title">
@@ -269,6 +308,12 @@ export default function App() {
           <span>{pending.length} {pending.length === 1 ? 'pendência' : 'pendências'}</span>
         </div>
         {!selected && message()}
+        {connected && catalog.filter(item => {
+          const status = connected.statuses[item.id]
+          return status?.kind === 'close'
+        }).map(item => <div className="connected-result" key={item.id}>
+          <span>{item.name}</span>{syncStatus(item)}
+        </div>)}
         {pending.length ? <ul className="order-list">{pending.map(item => {
           const { order, details } = itemRecords(entries, item)
           if (!order) return null
@@ -280,10 +325,11 @@ export default function App() {
             {details?.quantity != null && <p>Sugestão de compra: <strong>{quantityText(details.quantity, item.unit)}</strong></p>}
             <div className="order-actions">
               <button type="button" className="button secondary" onClick={() => openItem(item, 'history')}><Clock3 size={17} aria-hidden />Histórico</button>
-              <button type="button" className="button primary" onClick={() =>
+              {(!connected || connected.canClose) && <button type="button" className="button primary"
+                disabled={connected?.blocked(item.id)} onClick={() =>
                 commit({ itemId: item.id, type: 'close', target: order.id }, `${item.name}: compra concluída.`)}>
                 <Check size={18} aria-hidden />Marcar como comprado
-              </button>
+              </button>}
             </div>
           </li>
         })}</ul> : <div className="empty"><PackageOpen size={29} aria-hidden /><p>Nenhuma compra pendente.</p></div>}
@@ -294,18 +340,18 @@ export default function App() {
       <div className="sheet-summary"><ItemIcon item={selected} /><LastCount item={selected} entries={entries} /></div>
       {message(selected)}
       {panel === 'actions' && <div className="panel-actions">
-        <button type="button" className="button primary" onClick={() => openForm('count')}>
+        <button type="button" className="button primary" disabled={connected?.blocked(selected.id)} onClick={() => openForm('count')}>
           <ClipboardList size={20} aria-hidden />Registrar quantidade<ArrowRight size={18} aria-hidden />
         </button>
-        {current.order ? <button type="button" className="button warm" onClick={() => openForm('details')}>
-          <ShoppingBasket size={20} aria-hidden />Compra pendente<ChevronRight size={18} aria-hidden />
-        </button> : <button type="button" className="button secondary" onClick={() =>
+        {current.order ? <button type="button" className="button warm" disabled={connected?.blocked(selected.id)} onClick={() => openForm('details')}>
+          <ShoppingBasket size={20} aria-hidden />{connected ? 'Complementar pedido' : 'Compra pendente'}<ChevronRight size={18} aria-hidden />
+        </button> : <button type="button" className="button secondary" disabled={connected?.blocked(selected.id)} onClick={() =>
           commit({ itemId: selected.id, type: 'open' }, 'Pedido aberto neste aparelho.', 'Pedido desfeito')}>
           <Plus size={20} aria-hidden />Pedir compra
         </button>}
         <div className="item-links">
           <button type="button" onClick={() => { setError(''); setPanel('history') }}><Clock3 size={17} aria-hidden />Ver histórico</button>
-          {current.count && <button type="button" onClick={() => openForm('correct')}>Corrigir última contagem</button>}
+          {current.count && <button type="button" disabled={connected?.blocked(selected.id)} onClick={() => openForm('correct')}>Corrigir última contagem</button>}
         </div>
       </div>}
       {panel !== 'actions' && <button type="button" className="back" onClick={() => { setError(''); setPanel('actions') }}>
@@ -325,7 +371,7 @@ export default function App() {
         </div>
         <label htmlFor="note">{panel === 'count' ? 'Observação' : 'Motivo'}<small> (opcional)</small></label>
         <textarea id="note" rows={2} maxLength={400} value={note} onChange={event => setNote(event.target.value)} />
-        <button type="submit" className="button primary"><Check size={18} aria-hidden />
+        <button type="submit" className="button primary" disabled={connected?.blocked(selected.id)}><Check size={18} aria-hidden />
           {panel === 'details' ? 'Salvar detalhes' : panel === 'correct' ? 'Salvar correção' : 'Salvar contagem'}
         </button>
       </form>}

@@ -28,12 +28,12 @@ async function fromCache(pathname) {
     .catch(() => undefined)
 }
 
-async function navigate(request) {
+async function navigate(request, path) {
   try {
     const response = await fetch(request, { cache: 'no-store', signal: AbortSignal.timeout(5000) })
-    return response.ok ? response : (await fromCache('/')) ?? response
+    return response.ok ? response : (await fromCache(path)) ?? response
   } catch {
-    return (await fromCache('/')) ?? Response.error()
+    return (await fromCache(path)) ?? Response.error()
   }
 }
 
@@ -44,7 +44,9 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      event.respondWith(navigate(request))
+      event.respondWith(navigate(request, '/'))
+    } else if (url.pathname === '/piloto' || url.pathname === '/piloto.html') {
+      event.respondWith(navigate(request, '/piloto'))
     }
   } else if (Object.hasOwn(files, url.pathname)) {
     event.respondWith(fromCache(url.pathname).then(cached => cached ?? fetch(request)))

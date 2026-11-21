@@ -17,7 +17,7 @@ export default defineConfig(() => {
       async writeBundle({ dir }) {
         const output = dir ?? 'dist'
         const files = (await readdir(output, { recursive: true, withFileTypes: true }))
-          .filter(file => file.isFile() && file.name !== 'sw.js' && file.name !== '_headers' && file.name !== 'piloto.html' && !file.name.startsWith('piloto-'))
+          .filter(file => file.isFile() && file.name !== 'sw.js' && file.name !== '_headers')
           .map(file => join(file.parentPath, file.name).slice(output.length + 1))
           .sort()
         const version = createHash('sha256')
@@ -26,7 +26,7 @@ export default defineConfig(() => {
           version.update(file)
           const contents = await readFile(join(output, file))
           version.update(contents)
-          const path = file === 'index.html' ? '/' : '/' + file
+          const path = file === 'index.html' ? '/' : file === 'piloto.html' ? '/piloto' : '/' + file
           integrity[path] = 'sha256-' + createHash('sha256').update(contents).digest('base64')
         }
         const template = await readFile(new URL('./sw-template.js', import.meta.url), 'utf8')
