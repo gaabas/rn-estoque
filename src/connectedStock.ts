@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createClient, type Session } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import type { Change, Entry, Item } from './records'
 
 export const supabase = createClient(
@@ -39,8 +39,12 @@ export type ConnectedStock = Omit<Snapshot, 'revision'> & {
 const undoLabels = { count: 'Contagem desfeita', correct: 'Correção desfeita', open: 'Pedido desfeito' }
 const empty: Snapshot = { items: [], entries: [], canClose: false, name: '', revision: -1 }
 
-export function useConnectedStock(session: Session): ConnectedStock {
-  const key = 'rn-estoque-confirmado:' + session.user.id
+export function useConnectedStock(id: string, kitchenToken: string | undefined, signOutAccount: () => void): ConnectedStock {
+  const key = 'rn-estoque-confirmado:' + id
+  const request = useCallback((change: Change | null, request_id: string | null) =>
+    kitchenToken
+      ? supabase.rpc('rn_estoque_cozinha_operacao', { session_token: kitchenToken, change, request_id })
+      : supabase.rpc('rn_estoque_operacao', { change, request_id }), [kitchenToken])
   const [snapshot, setSnapshot] = useState<Snapshot>(() => {
     try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? empty } catch { return empty }
   })
@@ -80,18 +84,21 @@ export function useConnectedStock(session: Session): ConnectedStock {
 
   const refresh = useCallback(async () => {
     const read = ++reads.current
-    const result = await supabase.rpc('rn_estoque_operacao', { change: null, request_id: null })
+    const result = await request(null, null)
     if (!alive.current || read !== reads.current) return
     setLoading(false)
     if (result.error) {
-      if (result.error.code === '42501') rejectAccess()
+      if (kitchenToken && result.error.code === '28000') {
+        rejectAccess()
+        signOutAccount()
+      } else if (result.error.code === '42501') rejectAccess()
       else setError('Não foi possível atualizar. A lista pode estar desatualizada.')
       return
     }
     denied.current = false
     accept(result.data as Snapshot)
     setError('')
-  }, [accept, rejectAccess])
+  }, [accept, kitchenToken, rejectAccess, request, signOutAccount])
 
   useEffect(() => {
     alive.current = true
@@ -123,9 +130,13 @@ export function useConnectedStock(session: Session): ConnectedStock {
   async function submit(command: Entry) {
     const { id, at: _at, author: _author, ...change } = command
     status({ command, kind: command.type, phase: 'sending' })
-    const result = await supabase.rpc('rn_estoque_operacao', { change, request_id: id })
+    const result = await request(change, id)
     if (!alive.current || denied.current) return
     if (result.error) {
+      if (kitchenToken && result.error.code === '28000') {
+        signOutAccount()
+        return
+      }
       const retry = result.status === 0 || result.status >= 500
       const conflicted = result.error.code === '55000'
       status({ command, kind: command.type, phase: 'failed', retry, message: retry
@@ -168,7 +179,7 @@ export function useConnectedStock(session: Session): ConnectedStock {
     signOut() {
       if (Object.values(current.current).some(state => state.phase === 'sending')) return
       try { localStorage.removeItem(key) } catch { /* Storage may be disabled. */ }
-      void supabase.auth.signOut({ scope: 'local' })
+      signOutAccount()
     },
   }
 }

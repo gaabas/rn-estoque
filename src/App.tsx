@@ -86,7 +86,7 @@ function HistoryEntry({ entry, item }: { entry: Entry; item: Item }) {
   </li>
 }
 
-export default function App({ connected }: { connected?: ConnectedStock }) {
+export default function App({ connected, accessTools }: { connected?: ConnectedStock, accessTools?: ReactNode }) {
   const writing = useRef(false)
   const applyUpdate = usePwaUpdate()
   const [loadError, setLoadError] = useState(false)
@@ -290,6 +290,7 @@ export default function App({ connected }: { connected?: ConnectedStock }) {
             <button type="button" disabled={connected.sending} onClick={connected.signOut}>Sair</button>
           </div>
         : <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>}
+      {connected?.canClose && accessTools}
       {connected?.error && <p role="alert" className="error">{connected.error}</p>}
       {connected?.loading && <p role="status">Carregando estoque…</p>}
       {applyUpdate && !selected && <div className="update">

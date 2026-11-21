@@ -11,3 +11,8 @@
 .connected-header, .connected-result { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
 .connected-header { font-size: .875rem; color: var(--muted); }
 .connected-header button { min-height: 44px; background: none; border: 0; color: var(--green); font: inherit; text-decoration: underline; }
+.pilot .pilot-access-switch { background: transparent; color: var(--muted); text-decoration: underline; padding-inline: 0; }
+.kitchen-invites { margin-block: 8px 14px; }
+.kitchen-invites summary { display: list-item; width: fit-content; padding-block: 10px; color: var(--green); cursor: pointer; }
+.kitchen-invites form, .invite-link { display: grid; gap: 8px; margin-block: 8px; }
+.invite-link input { min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }

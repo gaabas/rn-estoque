@@ -21,6 +21,11 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
           refresh_token: 'test-refresh', expires_in: 3600, user: { id: 'test-user', email: 'teste@example.test' } } })
         return
       }
+      if (path === '/rest/v1/rpc/rn_estoque_cozinha_gerar_convite') {
+        expect(route.request().postDataJSON()).toEqual({ name: 'Cozinha Teste' })
+        await route.fulfill({ json: { token: 'a'.repeat(64) } })
+        return
+      }
       if (path !== '/rest/v1/rpc/rn_estoque_operacao') {
         await route.fulfill({ status: 404 })
         return
@@ -40,6 +45,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
   }
   async function login(client: typeof page) {
     await client.goto(url)
+    await client.getByRole('button', { name: 'Acesso do Gabriel' }).click()
     await client.getByLabel('E-mail').fill('teste@example.test')
     await client.getByLabel('Senha').fill('teste-apenas')
     await client.getByRole('button', { name: 'Entrar' }).click()
@@ -48,6 +54,11 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await login(page)
     const cream = page.locator('.stock-row').filter({ hasText: 'Creme de leite' })
     await expect(cream).toContainText('Sem contagem')
+    await page.locator('summary').getByText('Acessos da cozinha').click()
+    await page.getByLabel('Nome da pessoa').fill('Cozinha Teste')
+    await page.getByRole('button', { name: 'Gerar link de acesso' }).click()
+    await expect(page.getByLabel('Link de acesso')).toHaveValue(url + '#convite=' + 'a'.repeat(64))
+    await page.locator('summary').getByText('Acessos da cozinha').click()
     await cream.click()
     const dialog = page.getByRole('dialog')
     const quantity = page.getByLabel('Quantidade conferida')

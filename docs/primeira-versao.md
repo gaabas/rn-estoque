@@ -12,6 +12,14 @@ A equipe usa o app nos próprios celulares. A primeira configuração pode ser a
 
 A interface e a última lista carregada ficam disponíveis no aparelho após o primeiro acesso. Ao reabrir, o app mostra a lista disponível e busca contagens e pedidos atualizados em segundo plano. Sem conexão, indica que os dados exibidos podem estar desatualizados.
 
+### Acesso da cozinha
+
+O acesso diário precisa ser simples para uma equipe com pouca familiaridade com tecnologia. Cada pessoa da cozinha usa seu nome e um PIN individual. O login da cozinha dispensa e-mail. A sessão deve permanecer aberta no celular de uso habitual para que, depois da configuração inicial, a pessoa possa entrar pelo ícone e ir direto ao estoque.
+
+A proposta para o primeiro acesso é Gabriel entregar a cada pessoa um link individual, de uso único, com o nome já preenchido. A pessoa escolhe um PIN de seis dígitos no próprio celular, com ajuda de Gabriel se precisar. Depois, se for necessário entrar novamente, usa nome e PIN. Se esquecer o PIN, Gabriel pode liberar um novo link. O PIN é digitado no app. O WhatsApp pode ser usado para compartilhar o link.
+
+Após cinco PINs incorretos, o app pede que a pessoa aguarde dez minutos. O link vale 48 horas. Ao definir um novo PIN pelo link, as sessões anteriores daquela pessoa são encerradas. O app limita tentativas de PIN e mantém cada registro associado à pessoa que fez a ação. As permissões da cozinha continuam restritas a contagens e pedidos de reposição. Gabriel usa seu acesso atual para concluir compras.
+
 ### Atualização otimista
 
 Toda ação que altera contagens ou pedidos deve aparecer imediatamente na tela, incluindo registrar, corrigir ou desfazer uma contagem, abrir ou complementar um pedido e marcar como comprado. O envio roda em segundo plano e a pessoa pode seguir para outro insumo.
