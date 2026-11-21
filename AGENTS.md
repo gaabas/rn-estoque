@@ -24,3 +24,9 @@ Estas instruções valem para todo o repositório. Leia o [README](README.md) e 
 - Use React, TypeScript e Vite. O primeiro protótipo usa dados fictícios. A versão operacional usa o Supabase da operação da Rango e tem o Cloudflare Workers com Static Assets como hospedagem prevista. Integração com produção, entradas, importação de cupons e previsão ficam para etapas próprias.
 - Faça mudanças pequenas e aproveite os componentes existentes. Traga ao responsável as decisões que alterem a rotina da equipe, as permissões ou o significado dos registros e explique a consequência em termos práticos.
 - Ao mudar um fluxo, teste em largura de celular e execute as verificações disponíveis no projeto. Confira o caminho afetado em **Estoque**, **Compras** ou **Histórico**. Em mudanças de sincronização, verifique também falha de conexão e nova tentativa.
+
+## Publicação
+
+- Execute os testes relevantes e faça uma verificação prática da mudança antes de publicar. Para alterações na interface, abra a tela afetada e confira o fluxo em largura de celular.
+- Com as verificações aprovadas, o responsável autoriza o envio direto à `main` como fluxo padrão. Abra um pull request quando o responsável pedir revisão ou prévia antes da publicação.
+- Depois do push à `main`, confira o resultado do deploy no Cloudflare e, quando o endereço estiver acessível, verifique o comportamento publicado.
