@@ -21,6 +21,6 @@ Estas instruções valem para todo o repositório. Leia o [README](README.md) e 
 
 ## Escopo e verificação
 
-- Use React, TypeScript e Vite. O primeiro protótipo usa dados fictícios. A versão operacional usa o Supabase da operação da Rango e tem o Cloudflare Pages como hospedagem prevista. Integração com produção, entradas, importação de cupons e previsão ficam para etapas próprias.
+- Use React, TypeScript e Vite. O primeiro protótipo usa dados fictícios. A versão operacional usa o Supabase da operação da Rango e tem o Cloudflare Workers com Static Assets como hospedagem prevista. Integração com produção, entradas, importação de cupons e previsão ficam para etapas próprias.
 - Faça mudanças pequenas e aproveite os componentes existentes. Traga ao responsável as decisões que alterem a rotina da equipe, as permissões ou o significado dos registros e explique a consequência em termos práticos.
 - Ao mudar um fluxo, teste em largura de celular e execute as verificações disponíveis no projeto. Confira o caminho afetado em **Estoque**, **Compras** ou **Histórico**. Em mudanças de sincronização, verifique também falha de conexão e nova tentativa.
