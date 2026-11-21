@@ -8,6 +8,8 @@ import {
   type Change, type Entry, type Item,
 } from './records'
 
+import { usePwaUpdate } from './usePwaUpdate'
+
 const groupIcons = { Laticínios: Milk, Despensa: Box, Proteínas: Egg, Hortifruti: Leaf }
 type Panel = 'actions' | 'count' | 'correct' | 'details' | 'history'
 type Feedback = { text: string; undo?: { id: string; label: string } }
@@ -85,6 +87,7 @@ function HistoryEntry({ entry, item }: { entry: Entry; item: Item }) {
 
 export default function App() {
   const writing = useRef(false)
+  const applyUpdate = usePwaUpdate()
   const [loadError, setLoadError] = useState(false)
   const [entries, setEntries] = useState<Entry[]>(() => {
     try { return loadEntries() } catch { return [] }
@@ -231,6 +234,10 @@ export default function App() {
         </button>
       </nav>
       <p className="demo"><span aria-hidden /> Protótipo · Dados fictícios guardados neste aparelho</p>
+      {applyUpdate && !selected && <div className="update">
+        <span role="status">Atualização disponível</span>
+        <button type="button" onClick={() => { if (!writing.current) applyUpdate() }}>Atualizar agora</button>
+      </div>}
       {offline && <p className="offline" role="status"><WifiOff size={16} aria-hidden /> Sem conexão · Seus registros continuam neste aparelho.</p>}
       {loadError && <p className="error" role="alert">Não foi possível ler os registros deste aparelho.</p>}
 

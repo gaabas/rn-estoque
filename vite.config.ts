@@ -10,19 +10,23 @@ export default defineConfig({
     async writeBundle({ dir }) {
       const output = dir ?? 'dist'
       const files = (await readdir(output, { recursive: true, withFileTypes: true }))
-        .filter(file => file.isFile() && file.name !== 'sw.js')
+        .filter(file => file.isFile() && file.name !== 'sw.js' && file.name !== '_headers')
         .map(file => join(file.parentPath, file.name).slice(output.length + 1))
         .sort()
       const version = createHash('sha256')
+      const integrity: Record<string, string> = {}
       for (const file of files) {
         version.update(file)
-        version.update(await readFile(join(output, file)))
+        const contents = await readFile(join(output, file))
+        version.update(contents)
+        const path = file === 'index.html' ? '/' : '/' + file
+        integrity[path] = 'sha256-' + createHash('sha256').update(contents).digest('base64')
       }
       const template = await readFile(new URL('./sw-template.js', import.meta.url), 'utf8')
       version.update(template)
       await writeFile(join(output, 'sw.js'), template
         .replace('__CACHE_NAME__', JSON.stringify('rn-estoque-' + version.digest('hex')))
-        .replace('__CACHE_FILES__', JSON.stringify(files.map(file => '/' + file))))
+        .replace('__CACHE_FILES__', JSON.stringify(integrity)))
     },
   }],
 })

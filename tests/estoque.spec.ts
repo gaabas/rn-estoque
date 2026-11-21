@@ -103,7 +103,7 @@ test('reabre pela rede se o HTML saiu do cache e preserva o pedido local', async
     const names = (await caches.keys()).filter(name => name.startsWith('rn-estoque-'))
     const results = await Promise.all(names.map(async name => {
       const cache = await caches.open(name)
-      return cache.delete('/index.html')
+      return cache.delete('/')
     }))
     return results.some(Boolean)
   })
