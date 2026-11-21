@@ -13,6 +13,8 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
   const firstResponse = new Promise<void>(resolve => { release = resolve })
   let lostConfirmation = false
   let reads = 0
+  let countReset = 0
+  let revision = 0
   for (const client of [page, desktop]) {
     await client.route('https://hblveamovkpbxcmscpkf.supabase.co/**', async route => {
       const path = new URL(route.request().url()).pathname
@@ -27,6 +29,11 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
         await route.fulfill({ json: { token: 'a'.repeat(64) } })
         return
       }
+      if (path === '/rest/v1/rpc/rn_estoque_zerar_conferencias') {
+        countReset = ++revision
+        await route.fulfill({ json: { items, entries, canClose: true, name: 'Gabriel', revision, countReset } })
+        return
+      }
       if (path !== '/rest/v1/rpc/rn_estoque_operacao') {
         await route.fulfill({ status: 404 })
         return
@@ -34,7 +41,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
       const { change, request_id: id } = route.request().postDataJSON()
       if (!change) reads++
       if (change && !entries.some(entry => entry.id === id)) {
-        entries.push({ ...change, id, at: '2026-11-21T12:00:00Z', author: 'Gabriel' })
+        entries.push({ ...change, id, revision: ++revision, at: '2026-11-21T12:00:00Z', author: 'Gabriel' })
       }
       if (change?.type === 'count' && !lostConfirmation) {
         lostConfirmation = true
@@ -42,7 +49,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
         await route.fulfill({ status: 503, json: { message: 'Indisponível' } })
         return
       }
-      await route.fulfill({ json: { items, entries, canClose: true, name: 'Gabriel', revision: entries.length } })
+      await route.fulfill({ json: { items, entries, canClose: true, name: 'Gabriel', revision, countReset } })
     })
   }
   async function login(client: typeof page) {
@@ -55,7 +62,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
   try {
     await login(page)
     const cream = page.locator('.stock-row').filter({ hasText: 'Creme de leite' })
-    await expect(cream).toContainText('Sem contagem')
+    await expect(cream).toContainText('Não conferido')
     const header = page.getByRole('banner')
     const previousReads = reads
     const refresh = header.getByRole('button', { name: 'Atualizar lista' })
@@ -92,9 +99,10 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await dialog.locator('summary').getByText('Observação').click()
     await page.getByRole('textbox', { name: 'Observação' }).fill('Caixas fechadas')
     await page.getByRole('button', { name: 'Salvar contagem' }).click()
-    await expect(page.getByRole('dialog')).toContainText('Enviando…')
-    await expect(page.getByRole('dialog')).toContainText('8 caixas')
-    await page.getByRole('button', { name: 'Fechar painel' }).click()
+    await expect(dialog).toHaveCSS('animation-name', 'sheet-exit')
+    await expect(dialog).toHaveCount(0)
+    await expect(cream).toContainText('Enviando…')
+    await expect(cream).toContainText('8 caixas')
     await page.getByRole('button', { name: /Arroz branco/ }).click()
     await page.getByRole('button', { name: 'Aumentar quantidade' }).click()
     await expect(quantity).toHaveValue('0,25')
@@ -105,7 +113,7 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     await expect(quantity).toHaveValue('1,1')
     release()
     await page.getByRole('button', { name: 'Fechar painel' }).click()
-    await expect(cream).toContainText('Sem contagem')
+    await expect(cream).toContainText('Não conferido')
     await page.getByRole('button', { name: /Tentar de novo.*Creme de leite/ }).click()
     await expect(cream).toContainText('8 caixas')
     await expect(cream).toContainText('Salvo')
@@ -127,19 +135,35 @@ test('abre o catálogo, continua durante o envio e recupera confirmação perdid
     })).toBeGreaterThanOrEqual(8)
     await page.getByRole('button', { name: 'Pedir compra' }).click()
     await expect(page.getByRole('dialog')).toContainText('Salvo')
+    await dialog.getByRole('button', { name: 'Fechar painel' }).click()
     await login(desktop)
     await desktop.getByRole('button', { name: /^Compras/ }).click()
     await expect(desktop.getByText('8 caixas')).toBeVisible()
+    await desktop.getByRole('button', { name: 'Configurações' }).click()
+    const desktopSettings = desktop.getByRole('dialog', { name: 'Configurações' })
+    await desktopSettings.getByRole('button', { name: 'Zerar conferências', exact: true }).click()
+    await desktopSettings.getByRole('button', { name: 'Cancelar' }).click()
+    expect(countReset).toBe(0)
+    await desktopSettings.getByRole('button', { name: 'Zerar conferências', exact: true }).click()
+    await desktopSettings.getByRole('button', { name: 'Zerar agora' }).click()
+    await expect(desktopSettings.getByText('Conferências zeradas.')).toBeVisible()
+    await desktopSettings.getByRole('button', { name: 'Fechar painel' }).click()
+    await expect(desktop.getByText('Não conferido')).toBeVisible()
+    await desktop.getByRole('button', { name: 'Histórico', exact: true }).click()
+    await expect(desktop.getByRole('region', { name: 'Histórico' })).toContainText('8 caixas')
+    await desktop.getByRole('button', { name: 'Fechar painel' }).click()
     await desktop.getByRole('button', { name: 'Marcar como comprado' }).click()
     await expect(desktop.getByText('Nenhuma compra pendente.')).toBeVisible()
     await expect(desktop.getByText('Salvo', { exact: true })).toBeVisible()
     const entry = entries.find(record => record.type === 'count')
     expect(entry).toMatchObject({ quantity: 8, note: 'Caixas fechadas', at: '2026-11-21T12:00:00Z' })
+    await page.getByRole('button', { name: 'Atualizar lista' }).click()
+    await expect(cream).toContainText('Não conferido')
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
     await page.context().setOffline(true)
     await page.reload()
     await expect(page.getByText(/Sem conexão/)).toBeVisible()
-    await expect(cream).toContainText('8 caixas')
+    await expect(cream).toContainText('Não conferido')
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await cream.click()
     await expect(page.getByRole('dialog')).toHaveCSS('animation-name', 'none')

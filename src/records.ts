@@ -26,7 +26,7 @@ type Action =
   | { type: 'close'; target: string }
   | { type: 'undo'; target: string; label: string }
 
-export type Entry = Action & { id: string; itemId: Item['id']; at: string; author: string }
+export type Entry = Action & { id: string; itemId: Item['id']; at: string; author: string; revision?: number }
 export type Change = Action & { itemId: Item['id'] }
 
 export const storageKey = 'rn-estoque-demo-v1'
@@ -48,11 +48,14 @@ export function loadEntries(): Entry[] {
   return entries
 }
 
-export function itemRecords(entries: Entry[], item: Item) {
+export function itemRecords(entries: Entry[], item: Item, countReset = 0) {
   const history = entries.filter(entry => entry.itemId === item.id).reverse()
   const undone = new Set(history.flatMap(entry => entry.type === 'undo' ? [entry.target] : []))
   const active = history.filter(entry => !undone.has(entry.id))
-  const count = active.find(entry => entry.type === 'count')
+  const count = active.find(
+    (entry): entry is Extract<Entry, { type: 'count' }> =>
+      entry.type === 'count' && (entry.revision === undefined || entry.revision > countReset),
+  )
   const correction = count && active.find(
     (entry): entry is Extract<Entry, { type: 'correct' }> => entry.type === 'correct' && entry.target === count.id,
   )

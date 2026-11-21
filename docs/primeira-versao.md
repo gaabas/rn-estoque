@@ -35,12 +35,16 @@ Por exemplo, a cozinha muda uma contagem de 3 para 8 caixas e já vê 8 com **En
 
 A tela inicial abre na lista de insumos. Os mais usados ficam à mão, e a busca encontra os demais. Cada insumo mostra a última contagem com data e hora e indica se há compra pendente.
 
-- **Registrar quantidade.** Ao abrir um insumo, a tela já mostra o seletor de quantidade. Use **+** e **−** para ajustar de 1 em 1 nas contagens inteiras e de 250 g em 250 g nos itens em kg. Para uma quantidade personalizada, toque no valor e digite. A unidade vem do cadastro. A observação é opcional e fica recolhida até a pessoa escolher abri-la. Zero significa que alguém conferiu e encontrou o item zerado. Quando ainda não houver registro, mostrar **Sem contagem**.
+- **Registrar quantidade.** Ao abrir um insumo, a tela já mostra o seletor de quantidade. Use **+** e **−** para ajustar de 1 em 1 nas contagens inteiras e de 250 g em 250 g nos itens em kg. Para uma quantidade personalizada, toque no valor e digite. Ao salvar, o painel desliza para baixo e a lista mostra o envio. A linha ganha um realce breve quando aparece **Salvo**. A unidade vem do cadastro. A observação é opcional e fica recolhida até a pessoa escolher abri-la. Zero significa que alguém conferiu e encontrou o item zerado. Quando ainda não houver registro, mostrar **Não conferido**.
 - **Pedir compra.** Um toque abre o pedido. Motivo e quantidade sugerida podem ser acrescentados depois. Um insumo pode ter uma contagem recente e uma compra pendente ao mesmo tempo.
 - **Compra já pendente.** Mostrar o pedido aberto e permitir complementar o contexto. Cada insumo tem no máximo um pedido aberto.
 - **Confirmar e corrigir.** Mostrar quando a ação for salva e oferecer **Desfazer** para o registro acidental. Permitir corrigir um erro identificado, preservando no histórico o valor anterior, o autor e o horário da correção. O motivo é opcional.
 
 A conferência pode acontecer antes de montar a lista de compras. A equipe registra os itens que efetivamente conferiu e pode pedir reposição durante o turno. Combine a unidade e os locais de conferência por insumo. Para creme de leite, por exemplo, conte as caixas fechadas na despensa e na geladeira e registre em observação uma embalagem aberta quando ela fizer diferença para a compra.
+
+### Zerar conferências
+
+Em **Configurações**, apenas Gabriel pode escolher **Zerar conferências**. Após a confirmação, todos os itens voltam a aparecer como **Não conferido**. O histórico, as quantidades registradas anteriormente e os pedidos de compra ficam preservados. As novas conferências passam a preencher a lista normalmente. O app registra quando e por quem as conferências foram zeradas.
 
 ## Uso em compras
 
@@ -60,7 +64,7 @@ Com entradas registradas e fichas técnicas ligadas aos IDs dos insumos, será p
 
 ## Catálogo da primeira semana
 
-Os 12 insumos começam como **Sem contagem**. A equipe preenche a primeira quantidade à medida que confere cada item. As unidades abaixo são propostas para confirmar com a cozinha antes da semana de uso real.
+Os 12 insumos começam como **Não conferido**. A equipe preenche a primeira quantidade à medida que confere cada item. As unidades abaixo são propostas para confirmar com a cozinha antes da semana de uso real.
 
 | Insumo | Unidade proposta |
 | --- | --- |

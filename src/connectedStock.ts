@@ -14,6 +14,7 @@ type Snapshot = {
   canClose: boolean
   name: string
   revision: number
+  countReset?: number
 }
 type Status = {
   command: Entry
@@ -34,6 +35,7 @@ export type ConnectedStock = Omit<Snapshot, 'revision'> & {
   retry: (itemId: string) => void
   refresh: () => Promise<boolean>
   signOut: () => void
+  resetCounts: () => Promise<boolean>
 }
 
 const undoLabels = { count: 'Contagem desfeita', correct: 'Correção desfeita', open: 'Pedido desfeito' }
@@ -64,6 +66,9 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
   const alive = useRef(true)
   const latest = useRef(snapshot.revision)
   const reads = useRef(0)
+  const resetInFlight = useRef(false)
+  const resetRequestId = useRef<string | null>(null)
+  const [resetting, setResetting] = useState(false)
 
   const accept = useCallback((data: Snapshot) => {
     if (denied.current || data.revision < latest.current) return
@@ -129,7 +134,7 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
   }
 
   async function submit(command: Entry) {
-    const { id, at: _at, author: _author, ...change } = command
+    const { id, at: _at, author: _author, revision: _revision, ...change } = command
     status({ command, kind: command.type, phase: 'sending' })
     const result = await request(change, id)
     if (!alive.current || denied.current) return
@@ -157,7 +162,27 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
 
   function blocked(itemId: string) {
     const state = current.current[itemId]
-    return state?.phase === 'sending' || (state?.phase === 'failed' && Boolean(state.retry))
+    return resetInFlight.current || state?.phase === 'sending' || (state?.phase === 'failed' && Boolean(state.retry))
+  }
+
+  async function resetCounts() {
+    if (kitchenToken || !snapshot.canClose || resetInFlight.current ||
+      Object.values(current.current).some(state => state.phase === 'sending')) return false
+    resetInFlight.current = true
+    setResetting(true)
+    const request_id = resetRequestId.current ?? crypto.randomUUID()
+    resetRequestId.current = request_id
+    const result = await supabase.rpc('rn_estoque_zerar_conferencias', { request_id })
+    resetInFlight.current = false
+    if (!alive.current) return false
+    setResetting(false)
+    if (result.error) {
+      if (result.status && result.status < 500) resetRequestId.current = null
+      return false
+    }
+    resetRequestId.current = null
+    accept(result.data as Snapshot)
+    return true
   }
 
   const optimistic = Object.values(statuses).filter(state => state.phase === 'sending')
@@ -166,7 +191,9 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
   return {
     ...snapshot,
     entries: [...snapshot.entries, ...optimistic.map(state => state.command).filter(entry => !confirmed.has(entry.id))],
-    statuses, loading, error, blocked, sending: optimistic.length > 0,
+    countReset: resetting ? Number.MAX_SAFE_INTEGER : snapshot.countReset,
+    statuses, loading, error, blocked, sending: resetting || optimistic.length > 0,
+    resetCounts,
     refresh,
     send(change) {
       if (blocked(change.itemId) || denied.current) return false
@@ -175,10 +202,10 @@ export function useConnectedStock(id: string, kitchenToken: string | undefined, 
     },
     retry(itemId) {
       const state = current.current[itemId]
-      if (state?.phase === 'failed' && state.retry) void submit(state.command)
+      if (!resetInFlight.current && state?.phase === 'failed' && state.retry) void submit(state.command)
     },
     signOut() {
-      if (Object.values(current.current).some(state => state.phase === 'sending')) return
+      if (resetInFlight.current || Object.values(current.current).some(state => state.phase === 'sending')) return
       try { localStorage.removeItem(key) } catch { /* Storage may be disabled. */ }
       signOutAccount()
     },

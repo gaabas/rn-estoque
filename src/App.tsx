@@ -20,9 +20,9 @@ function ItemIcon({ item }: { item: Item }) {
   return <span className="item-icon" data-group={item.group}><Icon size={20} aria-hidden /></span>
 }
 
-function LastCount({ item, entries }: { item: Item; entries: Entry[] }) {
-  const { count, quantity } = itemRecords(entries, item)
-  if (!count || quantity === undefined) return <span className="muted">Sem contagem</span>
+function LastCount({ item, entries, countReset }: { item: Item; entries: Entry[]; countReset?: number }) {
+  const { count, quantity } = itemRecords(entries, item, countReset)
+  if (!count || quantity === undefined) return <span className="muted">Não conferido</span>
   return <span className="last-count">
     <strong>{quantityText(quantity, item.unit)}</strong>
     <span aria-hidden>·</span>
@@ -30,7 +30,7 @@ function LastCount({ item, entries }: { item: Item; entries: Entry[] }) {
   </span>
 }
 
-function Dialog({ children, close, title, open = true }: { children: ReactNode; close: () => void; title: string; open?: boolean }) {
+function Dialog({ children, close, title, open = true, leaving = false }: { children: ReactNode; close: () => void; title: string; open?: boolean; leaving?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   useEffect(() => {
@@ -38,10 +38,11 @@ function Dialog({ children, close, title, open = true }: { children: ReactNode; 
     if (open && !dialog?.open) dialog?.showModal()
     if (!open && dialog?.open) dialog.close()
   }, [open])
-  return <dialog ref={ref} aria-labelledby={titleId}
+  return <dialog ref={ref} aria-labelledby={titleId} data-leaving={leaving || undefined}
+    onAnimationEnd={event => { if (leaving && event.target === event.currentTarget && event.animationName === 'sheet-exit') close() }}
     onCancel={event => { event.preventDefault(); close() }}
     onClick={event => { if (event.target === event.currentTarget) close() }}>
-    <div className="sheet">
+    <div className="sheet" inert={leaving}>
       <header className="sheet-header">
         <h2 id={titleId}>{title}</h2>
         <button type="button" className="icon-button" onClick={close} aria-label="Fechar painel"><X size={22} /></button>
@@ -93,6 +94,9 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
   const writing = useRef(false)
   const applyUpdate = usePwaUpdate()
   const [settings, setSettings] = useState(false)
+  const [resetConfirmation, setResetConfirmation] = useState(false)
+  const [resetFeedback, setResetFeedback] = useState<'saved' | 'failed' | 'sending' | null>(null)
+  const [itemLeaving, setItemLeaving] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshNotice, setRefreshNotice] = useState('')
   const refreshIcon = useRef<SVGSVGElement>(null)
@@ -137,9 +141,10 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
 
   const catalog = connected?.items ?? items
   const entries = connected?.entries ?? localEntries
-  const pending = catalog.filter(item => itemRecords(entries, item).order)
+  const countReset = connected?.countReset ?? 0
+  const pending = catalog.filter(item => itemRecords(entries, item, countReset).order)
   const visible = catalog.filter(item => searchText(item.name).includes(searchText(query)))
-  const current = selected && itemRecords(entries, selected)
+  const current = selected && itemRecords(entries, selected, countReset)
   const quickCount = Boolean(connected && panel === 'actions')
   const formPanel = quickCount ? 'count' : panel
   const step = selected?.fractional ? 0.25 : 1
@@ -162,6 +167,7 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
   }
 
   function closeItem() {
+    setItemLeaving(false)
     setSelected(null)
     setError('')
     setFeedback(null)
@@ -224,6 +230,11 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
     const itemId = selected.id
     if (formPanel === 'count' && quantity !== null &&
       await commit({ itemId, type: 'count', quantity, unit: selected.unit, note: note.trim() }, 'Contagem salva neste aparelho.', 'Contagem desfeita')) {
+      if (connected) {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) closeItem()
+        else setItemLeaving(true)
+        return
+      }
       setInput('')
       setNote('')
       setPanel('actions')
@@ -245,6 +256,10 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
   function syncStatus(item: Item, inline = false) {
     const state = connected?.statuses[item.id]
     if (!state) return null
+    if (state.phase === 'saved' && (state.kind === 'count' || state.kind === 'correct')) {
+      const recorded = entries.find(entry => entry.id === state.command.id)
+      if (recorded?.revision !== undefined && recorded.revision <= countReset) return null
+    }
     return <>
       {state.phase === 'sending' && <span role="status">Enviando…</span>}
       {state.phase === 'saved' && <span role="status">Salvo</span>}
@@ -380,9 +395,9 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
               <ItemIcon item={item} />
               <span className="item-description">
                 <strong>{item.name}</strong>
-                <LastCount item={item} entries={entries} />
+                <LastCount item={item} entries={entries} countReset={countReset} />
                 {syncStatus(item, true)}
-                {itemRecords(entries, item).order && <span className="pending">Compra pendente</span>}
+                {itemRecords(entries, item, countReset).order && <span className="pending">Compra pendente</span>}
               </span>
               <ChevronRight className="chevron" size={19} aria-hidden />
             </button>
@@ -404,11 +419,11 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
           <span>{item.name}</span>{syncStatus(item)}
         </div>)}
         {pending.length ? <ul className="order-list">{pending.map(item => {
-          const { order, details } = itemRecords(entries, item)
+          const { order, details } = itemRecords(entries, item, countReset)
           if (!order) return null
           return <li className="order-card" key={order.id}>
             <div className="order-header">
-              <ItemIcon item={item} /><div><h2>{item.name}</h2><LastCount item={item} entries={entries} /></div>
+              <ItemIcon item={item} /><div><h2>{item.name}</h2><LastCount item={item} entries={entries} countReset={countReset} /></div>
             </div>
             {details?.note && <p>{details.note}</p>}
             {details?.quantity != null && <p>Sugestão de compra: <strong>{quantityText(details.quantity, item.unit)}</strong></p>}
@@ -425,16 +440,38 @@ export default function App({ connected, accessTools }: { connected?: ConnectedS
       </section>}
     </main>
 
-    {connected && <Dialog title="Configurações" open={settings} close={() => setSettings(false)}>
+    {connected && <Dialog title="Configurações" open={settings} close={() => {
+      setSettings(false)
+      setResetConfirmation(false)
+    }}>
       <div className="settings-sheet">
         {connected.name && <p className="muted">{connected.name}</p>}
         {connected.canClose && accessTools}
+        {connected.canClose && <section className="settings-reset" aria-label="Conferências do estoque">
+          {resetConfirmation ? <>
+            <p>Todos os insumos voltarão a aparecer como <strong>Não conferido</strong>. O histórico e os pedidos de compra serão preservados.</p>
+            <div className="settings-reset-actions">
+              <button type="button" className="button secondary" onClick={() => setResetConfirmation(false)}>Cancelar</button>
+              <button type="button" className="button danger" disabled={connected.sending} onClick={async () => {
+                setResetConfirmation(false)
+                setResetFeedback('sending')
+                setResetFeedback(await connected.resetCounts() ? 'saved' : 'failed')
+              }}>Zerar agora</button>
+            </div>
+          </> : <button type="button" className="button danger" disabled={connected.sending} onClick={() => {
+            setResetFeedback(null)
+            setResetConfirmation(true)
+          }}>Zerar conferências</button>}
+          {resetFeedback === 'sending' && <p role="status">Zerando conferências…</p>}
+          {resetFeedback === 'saved' && <p role="status">Conferências zeradas.</p>}
+          {resetFeedback === 'failed' && <p role="alert" className="error">Não foi possível confirmar. Confira a conexão e tente de novo.</p>}
+        </section>}
         <button type="button" className="button secondary" disabled={connected.sending} onClick={connected.signOut}>Sair</button>
       </div>
     </Dialog>}
 
-    {selected && current && <Dialog title={selected.name} close={closeItem}>
-      <div className="sheet-summary"><ItemIcon item={selected} /><LastCount item={selected} entries={entries} /></div>
+    {selected && current && <Dialog title={selected.name} close={closeItem} leaving={itemLeaving}>
+      <div className="sheet-summary"><ItemIcon item={selected} /><LastCount item={selected} entries={entries} countReset={countReset} /></div>
       {message(selected)}
       {panel !== 'actions' && <button type="button" className="back" onClick={() => {
         if (panel !== 'history') { setInput(''); setNote('') }

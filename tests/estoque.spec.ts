@@ -37,7 +37,7 @@ test('registra, complementa e conclui uma compra preservando a contagem', async 
 test('distingue zero, correção, nova observação e desfazer', async ({ page }) => {
   await page.goto('/')
   const item = page.getByRole('button', { name: /Farinha de trigo/ })
-  await expect(item).toContainText('Sem contagem')
+  await expect(item).toContainText('Não conferido')
   await item.click()
   await page.getByRole('button', { name: 'Registrar quantidade' }).click()
   await page.getByLabel('Quantidade conferida').fill('0')

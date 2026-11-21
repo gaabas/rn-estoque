@@ -12,8 +12,9 @@ Estas instruções valem para todo o repositório. Leia o [README](README.md) e 
 
 - A cozinha confere quantidades, pede reposição e complementa pedidos. Gabriel é o único responsável pelas compras na primeira versão e é quem pode marcar um pedido como comprado.
 
-- Uma contagem é uma observação datada. Mostre quando foi feita e diferencie **0** de **Sem contagem**. Ao corrigir, preserve o registro anterior, quem corrigiu e quando.
+- Uma contagem é uma observação datada. Mostre quando foi feita e diferencie **0** de **Não conferido**. Ao corrigir, preserve o registro anterior, quem corrigiu e quando.
 - A cozinha pode informar uma quantidade e pedir compra para o mesmo insumo. Mantenha no máximo um pedido aberto por insumo e permita complementar o pedido existente.
+- Só o administrador pode **Zerar conferências**. Após confirmar, todos os itens ficam **Não conferido**, com histórico e pedidos de compra preservados.
 - **Marcar como comprado** encerra o pedido e registra a conclusão no histórico. A contagem continua vinculada à última conferência física.
 
 ## Resposta da interface

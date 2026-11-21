@@ -130,6 +130,7 @@ form .primary { justify-content: center; margin-top: 5px; }
 
 @media (prefers-reduced-motion: no-preference) {
   dialog[open] { animation: sheet-enter 260ms cubic-bezier(.2, .75, .3, 1) both; }
+  dialog[open][data-leaving] { animation: sheet-exit 200ms ease-in both; }
   dialog[open]::backdrop { animation: backdrop-enter 220ms ease-out both; }
 
   @keyframes sheet-enter {
@@ -137,9 +138,18 @@ form .primary { justify-content: center; margin-top: 5px; }
     to { transform: translateY(0); }
   }
 
+  @keyframes sheet-exit { to { transform: translateY(var(--sheet-start, 100%)); } }
+  dialog[open][data-leaving]::backdrop { animation: backdrop-exit 200ms ease-in both; }
+  @keyframes backdrop-exit { to { opacity: 0; } }
+
   @keyframes backdrop-enter { from { opacity: 0; } }
 
   @media (min-width: 560px) {
     dialog { --sheet-start: 24px; }
   }
 }
+
+.settings-reset { display: grid; gap: 8px; padding-block: 8px; border-block: 1px solid var(--line); }
+.settings-reset-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.danger { color: #822f20; background: #f9e9e3; border-color: #e9c9bf; }
+.danger:disabled { opacity: .55; }
